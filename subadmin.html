@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Panel - Student Research Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0a1a; min-height: 100vh; padding: 20px; color: #fff; }
+        .container { max-width: 900px; margin: 0 auto; }
+
+        /* ================= LOGIN SCREEN ================= */
+        .login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10,10,26,0.98); backdrop-filter: blur(20px); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+        .login-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 30px; padding: 45px 35px; width: 100%; max-width: 420px; backdrop-filter: blur(20px); box-shadow: 0 25px 80px rgba(0,0,0,0.5); animation: slideUp 0.5s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .login-card .logo { font-size: 55px; text-align: center; margin-bottom: 10px; }
+        .login-card h1 { font-family: 'Space Grotesk', sans-serif; font-size: 26px; text-align: center; background: linear-gradient(135deg, #6C63FF, #00D2FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px; }
+        .login-card .sub { text-align: center; color: #a0a0b8; font-size: 13px; margin-bottom: 30px; }
+        .login-card input { width: 100%; padding: 16px 20px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); color: #fff; font-size: 15px; margin-bottom: 14px; font-family: 'Inter', sans-serif; transition: all 0.3s; }
+        .login-card input:focus { outline: none; border-color: #6C63FF; box-shadow: 0 0 25px rgba(108,99,255,0.2); }
+        .login-card input::placeholder { color: #a0a0b8; }
+        .login-card .login-btn { width: 100%; padding: 16px; border: none; border-radius: 14px; background: linear-gradient(135deg, #6C63FF, #5A52D5); color: #fff; font-size: 17px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: 'Inter', sans-serif; }
+        .login-card .login-btn:hover { transform: scale(1.02); box-shadow: 0 8px 30px rgba(108,99,255,0.4); }
+        .login-card .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .login-error { color: #FF6584; font-size: 13px; text-align: center; margin-top: 12px; display: none; padding: 12px; background: rgba(255,101,132,0.1); border-radius: 10px; }
+
+        /* ================= MAIN APP ================= */
+        .main-app { display: none; }
+        .main-app.active { display: block; }
+
+        .header { background: linear-gradient(135deg, #6C63FF, #5A52D5); border-radius: 20px; padding: 22px 28px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .header .brand { display: flex; align-items: center; gap: 15px; }
+        .header .brand .logo { width: 55px; height: 55px; border-radius: 14px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; }
+        .header .brand .logo img { width: 100%; height: 100%; object-fit: cover; }
+        .header .brand h1 { font-family: 'Space Grotesk', sans-serif; font-size: 20px; }
+        .header .brand p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+        .header .user-info { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .header .user-info .name { font-weight: 600; font-size: 14px; }
+        .header .user-info .logout-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 18px; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.3s; font-family: 'Inter', sans-serif; }
+        .header .user-info .logout-btn:hover { background: rgba(255,255,255,0.25); }
+
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+        @media (max-width: 600px) { .stats { grid-template-columns: 1fr; } }
+        .stat-box { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 22px; text-align: center; }
+        .stat-box .num { font-size: 34px; font-weight: 800; color: #6C63FF; font-family: 'Space Grotesk', sans-serif; }
+        .stat-box .label { font-size: 12px; color: #a0a0b8; margin-top: 4px; }
+
+        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 25px; margin-bottom: 20px; }
+        .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+        .form-grid input { padding: 14px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; font-family: 'Inter', sans-serif; }
+        .form-grid input:focus { outline: none; border-color: #6C63FF; box-shadow: 0 0 20px rgba(108,99,255,0.15); }
+        .form-grid input::placeholder { color: #a0a0b8; }
+
+        .btn-primary { width: 100%; margin-top: 15px; padding: 15px; border: none; border-radius: 12px; background: linear-gradient(135deg, #6C63FF, #5A52D5); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: 'Inter', sans-serif; }
+        .btn-primary:hover { transform: scale(1.02); box-shadow: 0 8px 30px rgba(108,99,255,0.4); }
+
+        .student-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 16px 20px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; transition: all 0.3s; }
+        .student-item:hover { border-color: #6C63FF; background: rgba(108,99,255,0.05); }
+        .student-item .info { flex: 1; min-width: 180px; }
+        .student-item .info .name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+        .student-item .info .detail { font-size: 12px; color: #a0a0b8; }
+        .student-item .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+        .status-badge { padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .status-badge.active { background: rgba(78,205,196,0.15); color: #4ECDC4; }
+        .status-badge.blocked { background: rgba(255,101,132,0.15); color: #FF6584; }
+        .online-dot { font-size: 10px; margin-left: 4px; }
+
+        .btn-sm { padding: 7px 14px; border-radius: 10px; cursor: pointer; font-size: 11px; font-weight: 600; border: none; transition: all 0.3s; font-family: 'Inter', sans-serif; }
+        .btn-block { background: rgba(255,101,132,0.15); color: #FF6584; border: 1px solid rgba(255,101,132,0.2); }
+        .btn-unblock { background: rgba(78,205,196,0.15); color: #4ECDC4; border: 1px solid rgba(78,205,196,0.2); }
+        .btn-delete { background: rgba(255,101,132,0.15); color: #FF6584; border: 1px solid rgba(255,101,132,0.2); }
+        .btn-sm:hover { transform: scale(1.05); }
+
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(10,10,26,0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); padding: 14px 28px; border-radius: 16px; color: white; z-index: 3000; display: none; font-size: 14px; max-width: 90%; text-align: center; }
+        .toast.success { border-color: #4ECDC4; }
+        .toast.error { border-color: #FF6584; }
+
+        .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 999; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #6C63FF; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-msg { text-align: center; color: #a0a0b8; padding: 40px; font-size: 14px; }
+        .empty-msg .icon { font-size: 50px; display: block; margin-bottom: 15px; opacity: 0.3; }
+
+        .footer { text-align: center; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 30px; }
+        .footer p { font-size: 13px; color: #a0a0b8; letter-spacing: 1px; }
+        .footer .brand { background: linear-gradient(135deg, #6C63FF, #00D2FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; font-size: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="loading" id="loading"><div class="spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+    <div class="login-card">
+        <div class="logo">🏫</div>
+        <h1>School Panel</h1>
+        <p class="sub">Student Research Tool • Sub-Admin Login</p>
+        <input type="tel" id="loginMobile" placeholder="📱 Sub-Admin Mobile" maxlength="10">
+        <input type="password" id="loginPassword" placeholder="🔒 Password">
+        <button class="login-btn" id="loginBtn" onclick="schoolLogin()">🚀 Login</button>
+        <div class="login-error" id="loginError">❌ Invalid credentials</div>
+    </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="main-app" id="mainApp">
+    <div class="header">
+        <div class="brand">
+            <div class="logo" id="schoolLogoBox">🏫</div>
+            <div>
+                <h1 id="schoolNameHeader">School Name</h1>
+                <p id="schoolSubHeader">Sub-Admin Panel</p>
+            </div>
+        </div>
+        <div class="user-info">
+            <span class="name" id="subAdminName">Sub-Admin</span>
+            <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat-box"><div class="num" id="statTotal">0</div><div class="label">Total Students</div></div>
+        <div class="stat-box"><div class="num" id="statActive" style="color:#4ECDC4;">0</div><div class="label">Active</div></div>
+        <div class="stat-box"><div class="num" id="statBlocked" style="color:#FF6584;">0</div><div class="label">Blocked</div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">➕ Add New Student</div>
+        <div class="form-grid">
+            <input type="text" id="studentName" placeholder="Full Name *">
+            <input type="tel" id="studentMobile" placeholder="Mobile (10 digits) *" maxlength="10">
+            <input type="password" id="studentPassword" placeholder="Password *" value="123456">
+            <input type="text" id="studentClass" placeholder="Class (e.g. 10th)">
+            <input type="text" id="studentPincode" placeholder="Pincode">
+            <input type="text" id="studentRollNo" placeholder="Roll No (optional)">
+        </div>
+        <button class="btn-primary" onclick="addStudent()">➕ Add Student</button>
+    </div>
+
+    <div class="card">
+        <div class="card-title">
+            <span>📋 All Students</span>
+            <button onclick="loadStudents()" style="background:rgba(78,205,196,0.15); border:1px solid rgba(78,205,196,0.2); color:#4ECDC4; padding:8px 18px; border-radius:12px; cursor:pointer; font-weight:600; font-size:12px;">🔄 Refresh</button>
+        </div>
+        <div id="studentList"><div class="empty-msg">Loading students...</div></div>
+    </div>
+
+    <div class="footer">
+        <p>© 2025 Student Research Tool • Managed by <span class="brand">Randhawa Enterprises</span></p>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// 🔒 SECURITY
+// ============================================================
+document.addEventListener('contextmenu', e => { e.preventDefault(); showToast('🔒 Right-click disabled', 'error'); });
+document.addEventListener('keydown', e => {
+    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || (e.ctrlKey && e.key === 'u') || e.key === 'PrintScreen') {
+        e.preventDefault(); showToast('🔒 Security: Disabled', 'error'); return false;
+    }
+});
+document.addEventListener('dragstart', e => e.preventDefault());
+document.addEventListener('copy', e => e.preventDefault());
+
+// ============================================================
+// FIREBASE CONFIG
+// ============================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyCBa8UmWUB-djAksNNvp14qoCY2y0HISoE",
+    authDomain: "gharproindia.firebaseapp.com",
+    projectId: "gharproindia",
+    storageBucket: "gharproindia.firebasestorage.app",
+    messagingSenderId: "374168845849",
+    appId: "1:374168845849:web:36aeca99558917c34ff488"
+};
+
+let db = null, isFirebaseReady = false;
+let currentSchool = null;
+
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'toast ' + type; t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
+
+function loadFirebase() {
+    return new Promise((resolve, reject) => {
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+            isFirebaseReady = true; db = firebase.firestore(); resolve(); return;
+        }
+        const s1 = document.createElement('script');
+        s1.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
+        s1.onload = () => {
+            const s2 = document.createElement('script');
+            s2.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js';
+            s2.onload = () => {
+                try { if (!firebase.apps.length) firebase.initializeApp(firebaseConfig); isFirebaseReady = true; db = firebase.firestore(); resolve(); }
+                catch(e) { reject(e); }
+            };
+            s2.onerror = () => reject(new Error('Firestore failed'));
+            document.head.appendChild(s2);
+        };
+        s1.onerror = () => reject(new Error('Firebase failed'));
+        document.head.appendChild(s1);
+    });
+}
+
+// ============================================================
+// SCHOOL LOGIN (Sub-Admin)
+// ============================================================
+window.schoolLogin = async function() {
+    const mobile = document.getElementById('loginMobile').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    const errEl = document.getElementById('loginError');
+    errEl.style.display = 'none';
+
+    if (!mobile || !password) {
+        errEl.textContent = '❌ Please enter mobile and password';
+        errEl.style.display = 'block'; return;
+    }
+
+    try {
+        showLoading(true);
+        if (!isFirebaseReady || !db) { await loadFirebase(); db = firebase.firestore(); }
+
+        const snap = await db.collection('schools').where('subAdminMobile', '==', mobile).get();
+        if (snap.empty) {
+            errEl.textContent = '❌ School not found! Contact Super Admin.';
+            errEl.style.display = 'block'; showLoading(false); return;
+        }
+
+        let schoolData = null, schoolId = null;
+        snap.forEach(doc => { schoolData = doc.data(); schoolId = doc.id; });
+
+        if (schoolData.subAdminPassword !== password) {
+            errEl.textContent = '❌ Wrong password!';
+            errEl.style.display = 'block'; showLoading(false); return;
+        }
+        if (schoolData.status === 'blocked') {
+            errEl.textContent = '❌ School blocked! Contact Super Admin.';
+            errEl.style.display = 'block'; showLoading(false); return;
+        }
+
+        currentSchool = { id: schoolId, ...schoolData };
+        localStorage.setItem('school_session', JSON.stringify(currentSchool));
+
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainApp').classList.add('active');
+
+        // Set school name + logo
+        document.getElementById('schoolNameHeader').textContent = schoolData.schoolName;
+        document.getElementById('schoolSubHeader').textContent = 'Sub-Admin: ' + schoolData.subAdminName;
+        document.getElementById('subAdminName').textContent = schoolData.subAdminName;
+
+        if (schoolData.schoolLogo) {
+            document.getElementById('schoolLogoBox').innerHTML = `<img src="${schoolData.schoolLogo}" onerror="this.parentElement.textContent='🏫'">`;
+        } else {
+            document.getElementById('schoolLogoBox').textContent = '🏫';
+        }
+
+        showToast('✅ Welcome ' + schoolData.subAdminName + '!');
+        loadStudents();
+
+    } catch(e) {
+        errEl.textContent = '❌ Error: ' + e.message;
+        errEl.style.display = 'block';
+    }
+    showLoading(false);
+};
+
+// ============================================================
+// CHECK SESSION
+// ============================================================
+function checkSession() {
+    const saved = localStorage.getItem('school_session');
+    if (!saved) return;
+    try {
+        const data = JSON.parse(saved);
+        if (!db) db = firebase.firestore();
+        db.collection('schools').doc(data.id).get().then(doc => {
+            if (doc.exists && doc.data().status !== 'blocked') {
+                currentSchool = { id: doc.id, ...doc.data() };
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainApp').classList.add('active');
+                document.getElementById('schoolNameHeader').textContent = currentSchool.schoolName;
+                document.getElementById('schoolSubHeader').textContent = 'Sub-Admin: ' + currentSchool.subAdminName;
+                document.getElementById('subAdminName').textContent = currentSchool.subAdminName;
+                if (currentSchool.schoolLogo) {
+                    document.getElementById('schoolLogoBox').innerHTML = `<img src="${currentSchool.schoolLogo}" onerror="this.parentElement.textContent='🏫'">`;
+                }
+                loadStudents();
+            } else {
+                localStorage.removeItem('school_session');
+            }
+        });
+    } catch(e) { localStorage.removeItem('school_session'); }
+}
+
+window.logout = function() {
+    localStorage.removeItem('school_session');
+    location.reload();
+};
+
+// ============================================================
+// ADD STUDENT
+// ============================================================
+window.addStudent = async function() {
+    const name = document.getElementById('studentName').value.trim();
+    const mobile = document.getElementById('studentMobile').value.trim();
+    const password = document.getElementById('studentPassword').value.trim();
+    const cls = document.getElementById('studentClass').value.trim();
+    const pincode = document.getElementById('studentPincode').value.trim();
+    const rollNo = document.getElementById('studentRollNo').value.trim();
+
+    if (!name || !mobile || !password) { showToast('❌ Name, Mobile, Password required!', 'error'); return; }
+    if (mobile.length !== 10) { showToast('❌ Mobile must be 10 digits!', 'error'); return; }
+    if (password.length < 6) { showToast('❌ Password min 6 characters!', 'error'); return; }
+
+    try {
+        showLoading(true);
+        const check = await db.collection('students').where('mobile', '==', mobile).get();
+        if (!check.empty) { showToast('❌ Mobile already registered!', 'error'); showLoading(false); return; }
+
+        await db.collection('students').add({
+            name: name,
+            mobile: mobile,
+            password: password,
+            schoolId: currentSchool.id,
+            schoolName: currentSchool.schoolName,
+            schoolLogo: currentSchool.schoolLogo || '',
+            class: cls || 'N/A',
+            pincode: pincode || '',
+            rollNo: rollNo || '',
+            status: 'active',
+            currentSession: '',
+            createdAt: new Date().toISOString(),
+            addedBy: currentSchool.subAdminName
+        });
+
+        showToast('✅ Student added!');
+        document.getElementById('studentName').value = '';
+        document.getElementById('studentMobile').value = '';
+        document.getElementById('studentPassword').value = '123456';
+        document.getElementById('studentClass').value = '';
+        document.getElementById('studentPincode').value = '';
+        document.getElementById('studentRollNo').value = '';
+        loadStudents();
+    } catch(e) {
+        showToast('❌ Error: ' + e.message, 'error');
+    }
+    showLoading(false);
+};
+
+// ============================================================
+// LOAD STUDENTS
+// ============================================================
+async function loadStudents() {
+    const list = document.getElementById('studentList');
+    try {
+        const snap = await db.collection('students').where('schoolId', '==', currentSchool.id).get();
+        let html = '', total = 0, active = 0, blocked = 0;
+
+        if (snap.empty) {
+            html = '<div class="empty-msg"><span class="icon">👨‍🎓</span>No students added yet.<br>Add your first student above!</div>';
+        } else {
+            const docs = [];
+            snap.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
+            docs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            docs.forEach(data => {
+                total++;
+                if (data.status === 'active') active++;
+                if (data.status === 'blocked') blocked++;
+                const isOnline = data.currentSession && data.currentSession !== '';
+                const statusClass = data.status === 'active' ? 'active' : 'blocked';
+
+                html += `
+                    <div class="student-item">
+                        <div class="info">
+                            <div class="name">${data.name || 'Unknown'} ${isOnline ? '<span class="online-dot">🟢</span>' : '<span class="online-dot">🔴</span>'}</div>
+                            <div class="detail">📱 ${data.mobile} • 📚 ${data.class || 'N/A'} ${data.rollNo ? '• 🎫 ' + data.rollNo : ''}</div>
+                            <div class="detail">📍 ${data.pincode || 'N/A'} • ${isOnline ? 'Online' : 'Offline'}</div>
+                        </div>
+                        <div class="actions">
+                            <span class="status-badge ${statusClass}">${data.status || 'active'}</span>
+                            <button class="btn-sm ${data.status === 'blocked' ? 'btn-unblock' : 'btn-block'}" onclick="toggleBlock('${data.id}','${data.status || 'active'}')">
+                                ${data.status === 'blocked' ? '🔓 Unblock' : '🔒 Block'}
+                            </button>
+                            <button class="btn-sm btn-delete" onclick="deleteStudent('${data.id}')">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statActive').textContent = active;
+        document.getElementById('statBlocked').textContent = blocked;
+        list.innerHTML = html;
+
+    } catch(e) {
+        list.innerHTML = '<div class="empty-msg" style="color:#FF6584;">❌ Error loading students.</div>';
+    }
+}
+
+// ============================================================
+// TOGGLE BLOCK / DELETE
+// ============================================================
+window.toggleBlock = async function(id, current) {
+    const newStatus = current === 'active' ? 'blocked' : 'active';
+    if (!confirm(`${newStatus === 'blocked' ? 'Block' : 'Unblock'} this student?`)) return;
+    try {
+        showLoading(true);
+        await db.collection('students').doc(id).update({ status: newStatus, updatedAt: new Date().toISOString() });
+        showToast('✅ Student ' + (newStatus === 'blocked' ? 'blocked' : 'unblocked') + '!');
+        loadStudents();
+    } catch(e) { showToast('❌ ' + e.message, 'error'); }
+    showLoading(false);
+};
+
+window.deleteStudent = async function(id) {
+    if (!confirm('⚠️ Delete this student permanently?')) return;
+    try {
+        showLoading(true);
+        await db.collection('students').doc(id).delete();
+        showToast('✅ Student deleted!');
+        loadStudents();
+    } catch(e) { showToast('❌ ' + e.message, 'error'); }
+    showLoading(false);
+};
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    loadFirebase().then(() => {
+        db = firebase.firestore();
+        console.log('✅ School Panel Ready!');
+        checkSession();
+    }).catch(err => {
+        document.getElementById('loginError').textContent = '❌ Firebase connection error.';
+        document.getElementById('loginError').style.display = 'block';
+    });
+});
+</script>
+</body>
+</html>

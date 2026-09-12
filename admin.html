@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin - Student Research Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0a1a; min-height: 100vh; padding: 20px; color: #fff; }
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        .header { background: linear-gradient(135deg, #6C63FF, #5A52D5); border-radius: 20px; padding: 25px 30px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .header h1 { font-family: 'Space Grotesk', sans-serif; font-size: 26px; }
+        .header .badge { background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+        
+        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 25px; margin-bottom: 20px; }
+        .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+        
+        .form-grid input, .form-grid select { padding: 14px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; font-family: 'Inter', sans-serif; }
+        .form-grid input:focus, .form-grid select:focus { outline: none; border-color: #6C63FF; box-shadow: 0 0 20px rgba(108,99,255,0.15); }
+        .form-grid input::placeholder { color: #a0a0b8; }
+        
+        .btn-primary { width: 100%; margin-top: 15px; padding: 15px; border: none; border-radius: 12px; background: linear-gradient(135deg, #6C63FF, #5A52D5); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: 'Inter', sans-serif; }
+        .btn-primary:hover { transform: scale(1.02); box-shadow: 0 8px 30px rgba(108,99,255,0.4); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .school-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 18px 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; transition: all 0.3s; }
+        .school-item:hover { border-color: #6C63FF; background: rgba(108,99,255,0.05); }
+        .school-item .logo { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; background: rgba(108,99,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .school-item .info { flex: 1; min-width: 150px; }
+        .school-item .info .name { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+        .school-item .info .detail { font-size: 12px; color: #a0a0b8; }
+        .school-item .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        
+        .btn-sm { padding: 8px 16px; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 600; border: none; transition: all 0.3s; font-family: 'Inter', sans-serif; }
+        .btn-view { background: rgba(78,205,196,0.15); color: #4ECDC4; border: 1px solid rgba(78,205,196,0.2); }
+        .btn-delete { background: rgba(255,101,132,0.15); color: #FF6584; border: 1px solid rgba(255,101,132,0.2); }
+        .btn-sm:hover { transform: scale(1.05); }
+        
+        .status-badge { padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .status-badge.active { background: rgba(78,205,196,0.15); color: #4ECDC4; }
+        .status-badge.blocked { background: rgba(255,101,132,0.15); color: #FF6584; }
+        
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+        @media (max-width: 600px) { .stats { grid-template-columns: 1fr; } }
+        .stat-box { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 22px; text-align: center; }
+        .stat-box .num { font-size: 34px; font-weight: 800; color: #6C63FF; font-family: 'Space Grotesk', sans-serif; }
+        .stat-box .label { font-size: 12px; color: #a0a0b8; margin-top: 4px; }
+        
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(10,10,26,0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); padding: 14px 28px; border-radius: 16px; color: white; z-index: 3000; display: none; font-size: 14px; max-width: 90%; text-align: center; }
+        .toast.success { border-color: #4ECDC4; }
+        .toast.error { border-color: #FF6584; }
+        
+        .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 999; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #6C63FF; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .empty-msg { text-align: center; color: #a0a0b8; padding: 40px; font-size: 14px; }
+        .empty-msg .icon { font-size: 50px; display: block; margin-bottom: 15px; opacity: 0.3; }
+        
+        .footer { text-align: center; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 30px; }
+        .footer p { font-size: 13px; color: #a0a0b8; letter-spacing: 1px; }
+        .footer .brand { background: linear-gradient(135deg, #6C63FF, #00D2FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; font-size: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="loading" id="loading"><div class="spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<div class="container">
+    <div class="header">
+        <h1>👑 Super Admin Panel</h1>
+        <span class="badge">🎓 Student Research Tool</span>
+    </div>
+
+    <div class="stats">
+        <div class="stat-box"><div class="num" id="statSchools">0</div><div class="label">Total Schools</div></div>
+        <div class="stat-box"><div class="num" id="statStudents" style="color:#4ECDC4;">0</div><div class="label">Total Students</div></div>
+        <div class="stat-box"><div class="num" id="statActive" style="color:#FF6584;">0</div><div class="label">Active Students</div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">➕ Add New School</div>
+        <div class="form-grid">
+            <input type="text" id="schoolName" placeholder="School Name *">
+            <input type="text" id="schoolLogo" placeholder="School Logo URL (optional)">
+            <input type="text" id="subAdminName" placeholder="Sub-Admin Name *">
+            <input type="tel" id="subAdminMobile" placeholder="Sub-Admin Mobile (10 digits) *" maxlength="10">
+            <input type="password" id="subAdminPassword" placeholder="Sub-Admin Password *" value="school123">
+            <input type="text" id="schoolPincode" placeholder="School Pincode (optional)">
+        </div>
+        <button class="btn-primary" id="addSchoolBtn" onclick="addSchool()">➕ Add School</button>
+    </div>
+
+    <div class="card">
+        <div class="card-title">
+            <span>🏫 All Schools</span>
+            <button onclick="loadSchools()" style="background:rgba(78,205,196,0.15); border:1px solid rgba(78,205,196,0.2); color:#4ECDC4; padding:8px 18px; border-radius:12px; cursor:pointer; font-weight:600; font-size:12px;">🔄 Refresh</button>
+        </div>
+        <div id="schoolList">
+            <div class="empty-msg">Loading schools...</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2025 Student Research Tool • Managed by <span class="brand">Randhawa Enterprises</span></p>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// 🔒 SECURITY: F12, Right-click, Ctrl+Shift+I, Copy, PrintScreen
+// ============================================================
+document.addEventListener('contextmenu', function(e) { e.preventDefault(); showToast('🔒 Right-click disabled', 'error'); });
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'F12' || 
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || 
+        (e.ctrlKey && e.key === 'u') || 
+        e.key === 'PrintScreen') {
+        e.preventDefault(); showToast('🔒 Security: Disabled', 'error'); return false;
+    }
+});
+document.addEventListener('dragstart', function(e) { e.preventDefault(); });
+document.addEventListener('copy', function(e) { e.preventDefault(); });
+
+// ============================================================
+// FIREBASE CONFIG
+// ============================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyCBa8UmWUB-djAksNNvp14qoCY2y0HISoE",
+    authDomain: "gharproindia.firebaseapp.com",
+    projectId: "gharproindia",
+    storageBucket: "gharproindia.firebasestorage.app",
+    messagingSenderId: "374168845849",
+    appId: "1:374168845849:web:36aeca99558917c34ff488"
+};
+
+let db = null;
+let isFirebaseReady = false;
+
+function showToast(msg, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = 'toast ' + type;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
+
+function loadFirebase() {
+    return new Promise((resolve, reject) => {
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+            isFirebaseReady = true; db = firebase.firestore(); resolve(); return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
+        script.onload = () => {
+            const script2 = document.createElement('script');
+            script2.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js';
+            script2.onload = () => {
+                try {
+                    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+                    isFirebaseReady = true; db = firebase.firestore(); resolve();
+                } catch(e) { reject(e); }
+            };
+            script2.onerror = () => reject(new Error('Firestore failed'));
+            document.head.appendChild(script2);
+        };
+        script.onerror = () => reject(new Error('Firebase failed'));
+        document.head.appendChild(script);
+    });
+}
+
+// ============================================================
+// ADD SCHOOL
+// ============================================================
+window.addSchool = async function() {
+    const schoolName = document.getElementById('schoolName').value.trim();
+    const schoolLogo = document.getElementById('schoolLogo').value.trim();
+    const subAdminName = document.getElementById('subAdminName').value.trim();
+    const subAdminMobile = document.getElementById('subAdminMobile').value.trim();
+    const subAdminPassword = document.getElementById('subAdminPassword').value.trim();
+    const schoolPincode = document.getElementById('schoolPincode').value.trim();
+
+    if (!schoolName || !subAdminName || !subAdminMobile || !subAdminPassword) {
+        showToast('❌ Please fill all required fields!', 'error'); return;
+    }
+    if (subAdminMobile.length !== 10) {
+        showToast('❌ Mobile must be 10 digits!', 'error'); return;
+    }
+    if (subAdminPassword.length < 6) {
+        showToast('❌ Password must be at least 6 characters!', 'error'); return;
+    }
+
+    try {
+        showLoading(true);
+        if (!isFirebaseReady || !db) { await loadFirebase(); db = firebase.firestore(); }
+
+        // Check duplicate mobile
+        const check = await db.collection('schools').where('subAdminMobile', '==', subAdminMobile).get();
+        if (!check.empty) { showToast('❌ Mobile already registered!', 'error'); showLoading(false); return; }
+
+        await db.collection('schools').add({
+            schoolName: schoolName,
+            schoolLogo: schoolLogo || '',
+            subAdminName: subAdminName,
+            subAdminMobile: subAdminMobile,
+            subAdminPassword: subAdminPassword,
+            schoolPincode: schoolPincode || '',
+            status: 'active',
+            createdAt: new Date().toISOString()
+        });
+
+        showToast('✅ School added successfully!');
+        document.getElementById('schoolName').value = '';
+        document.getElementById('schoolLogo').value = '';
+        document.getElementById('subAdminName').value = '';
+        document.getElementById('subAdminMobile').value = '';
+        document.getElementById('subAdminPassword').value = 'school123';
+        document.getElementById('schoolPincode').value = '';
+        loadSchools();
+    } catch(e) {
+        console.error(e);
+        showToast('❌ Error: ' + e.message, 'error');
+    }
+    showLoading(false);
+};
+
+// ============================================================
+// LOAD SCHOOLS
+// ============================================================
+async function loadSchools() {
+    const list = document.getElementById('schoolList');
+    try {
+        if (!isFirebaseReady || !db) { await loadFirebase(); db = firebase.firestore(); }
+
+        const snapshot = await db.collection('schools').orderBy('createdAt', 'desc').get();
+        let html = '';
+        let totalSchools = 0;
+        let totalStudents = 0;
+        let activeStudents = 0;
+
+        if (snapshot.empty) {
+            html = '<div class="empty-msg"><span class="icon">🏫</span>No schools added yet.<br>Add your first school above!</div>';
+        } else {
+            for (const doc of snapshot.docs) {
+                const data = doc.data();
+                totalSchools++;
+
+                // Count students for this school
+                const studentsSnap = await db.collection('students').where('schoolId', '==', doc.id).get();
+                const schoolStudents = studentsSnap.size;
+                totalStudents += schoolStudents;
+
+                let activeCount = 0;
+                studentsSnap.forEach(s => { if (s.data().status === 'active') activeCount++; });
+                activeStudents += activeCount;
+
+                html += `
+                    <div class="school-item">
+                        <div class="logo">
+                            ${data.schoolLogo ? `<img src="${data.schoolLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onerror="this.style.display='none';this.parentElement.textContent='🏫'">` : '🏫'}
+                        </div>
+                        <div class="info">
+                            <div class="name">${data.schoolName}</div>
+                            <div class="detail">👤 ${data.subAdminName} • 📱 ${data.subAdminMobile}</div>
+                            <div class="detail">👨‍🎓 ${schoolStudents} students • 🟢 ${activeCount} active</div>
+                        </div>
+                        <div class="actions">
+                            <span class="status-badge ${data.status === 'active' ? 'active' : 'blocked'}">${data.status || 'active'}</span>
+                            <button class="btn-sm btn-delete" onclick="deleteSchool('${doc.id}','${data.schoolName}')">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        document.getElementById('statSchools').textContent = totalSchools;
+        document.getElementById('statStudents').textContent = totalStudents;
+        document.getElementById('statActive').textContent = activeStudents;
+        list.innerHTML = html;
+
+    } catch(e) {
+        console.error(e);
+        list.innerHTML = '<div class="empty-msg" style="color:#FF6584;">❌ Error loading schools. Check Firebase.</div>';
+    }
+}
+
+// ============================================================
+// DELETE SCHOOL
+// ============================================================
+window.deleteSchool = async function(id, name) {
+    if (!confirm(`⚠️ Delete "${name}" permanently?\nAll students of this school will also be deleted!`)) return;
+    try {
+        showLoading(true);
+        // Delete all students of this school
+        const studentsSnap = await db.collection('students').where('schoolId', '==', id).get();
+        const batch = db.batch();
+        studentsSnap.forEach(doc => { batch.delete(doc.ref); });
+        batch.delete(db.collection('schools').doc(id));
+        await batch.commit();
+        showToast('✅ School deleted!');
+        loadSchools();
+    } catch(e) {
+        showToast('❌ Error: ' + e.message, 'error');
+    }
+    showLoading(false);
+};
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    loadFirebase().then(() => {
+        db = firebase.firestore();
+        console.log('✅ Admin Panel Ready!');
+        loadSchools();
+    }).catch(err => {
+        console.warn('⚠️ Firebase error:', err);
+        document.getElementById('schoolList').innerHTML = '<div class="empty-msg" style="color:#FF6584;">❌ Firebase connection error.</div>';
+    });
+});
+</script>
+</body>
+</html>

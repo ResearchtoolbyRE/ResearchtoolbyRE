@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Student Research Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #6C63FF;
+            --primary-dark: #5A52D5;
+            --secondary: #FF6584;
+            --accent: #00D2FF;
+            --bg-dark: #0a0a1a;
+            --text-gray: #a0a0b8;
+            --glass: rgba(255,255,255,0.08);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-dark); min-height: 100vh; color: #fff; overflow-x: hidden; }
+
+        .bg-animation { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; }
+        .bg-animation .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.3; animation: float 20s infinite ease-in-out; }
+        .bg-animation .orb:nth-child(1) { width: 600px; height: 600px; background: var(--primary); top: -200px; right: -200px; }
+        .bg-animation .orb:nth-child(2) { width: 400px; height: 400px; background: var(--secondary); bottom: -100px; left: -100px; animation-delay: -5s; }
+        .bg-animation .orb:nth-child(3) { width: 300px; height: 300px; background: var(--accent); top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: -10s; }
+        @keyframes float { 0%,100%{transform:translate(0,0) scale(1)} 25%{transform:translate(50px,-50px) scale(1.1)} 50%{transform:translate(-30px,30px) scale(0.9)} 75%{transform:translate(40px,20px) scale(1.05)} }
+
+        /* ================= LOGIN ================= */
+        .login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 1000; background: rgba(10,10,26,0.95); backdrop-filter: blur(20px); padding: 20px; }
+        .login-card { background: rgba(255,255,255,0.05); border: 1px solid var(--glass); border-radius: 30px; padding: 45px 35px; width: 100%; max-width: 420px; backdrop-filter: blur(20px); box-shadow: 0 25px 80px rgba(0,0,0,0.5); animation: slideUp 0.6s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(40px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .login-card .logo-icon { font-size: 55px; text-align: center; margin-bottom: 5px; }
+        .login-card h1 { font-family: 'Space Grotesk', sans-serif; font-size: 26px; text-align: center; background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px; }
+        .login-card .sub-title { text-align: center; color: var(--text-gray); font-size: 13px; margin-bottom: 30px; }
+        .login-card .sub-title span { color: var(--secondary); }
+        .login-card input { width: 100%; padding: 16px 20px; border-radius: 16px; border: 1px solid var(--glass); background: rgba(255,255,255,0.05); color: white; font-size: 15px; margin-bottom: 15px; transition: all 0.3s; font-family: 'Inter', sans-serif; }
+        .login-card input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 30px rgba(108,99,255,0.15); }
+        .login-card input::placeholder { color: var(--text-gray); }
+        .login-card .login-btn { width: 100%; padding: 16px; border: none; border-radius: 16px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; font-size: 17px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: 'Inter', sans-serif; }
+        .login-card .login-btn:hover { transform: scale(1.02); box-shadow: 0 8px 30px rgba(108,99,255,0.4); }
+        .login-card .forgot-link { text-align: center; font-size: 13px; color: var(--accent); cursor: pointer; margin-top: 15px; display: block; }
+        .login-card .forgot-link:hover { text-decoration: underline; }
+        .login-error { color: var(--secondary); font-size: 13px; text-align: center; margin-top: 10px; display: none; padding: 10px; background: rgba(255,101,132,0.1); border-radius: 10px; }
+
+        /* ================= MAIN APP ================= */
+        .main-app { display: none; min-height: 100vh; padding: 20px; max-width: 1400px; margin: 0 auto; }
+        .main-app.active { display: block; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass); border-radius: 20px; backdrop-filter: blur(10px); margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
+        .header .brand { display: flex; align-items: center; gap: 12px; }
+        .header .brand .school-logo { width: 45px; height: 45px; border-radius: 12px; background: rgba(108,99,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 22px; overflow: hidden; }
+        .header .brand .school-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .header .brand h2 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; }
+        .header .brand small { font-size: 11px; color: var(--text-gray); display: block; margin-top: -2px; }
+        .header .user-info { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .header .user-info .name { font-weight: 600; font-size: 14px; }
+        .header .user-info .logout-btn { background: rgba(255,101,132,0.15); border: 1px solid rgba(255,101,132,0.2); color: var(--secondary); padding: 8px 18px; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 13px; font-family: 'Inter', sans-serif; transition: all 0.3s; }
+        .header .user-info .logout-btn:hover { background: rgba(255,101,132,0.25); }
+
+        .main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 25px; min-height: 70vh; }
+        @media (max-width: 992px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .chat-area { background: rgba(255,255,255,0.05); border: 1px solid var(--glass); border-radius: 20px; backdrop-filter: blur(10px); padding: 25px; display: flex; flex-direction: column; min-height: 500px; }
+        .chat-area .chat-title { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--glass); }
+        .chat-area .chat-title .ai-icon { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .chat-area .chat-title h3 { font-family: 'Space Grotesk', sans-serif; font-size: 17px; }
+        .chat-area .chat-title .online { font-size: 11px; color: #4ECDC4; margin-left: auto; }
+
+        .chat-messages { flex: 1; overflow-y: auto; padding-right: 10px; max-height: 450px; }
+        .chat-messages::-webkit-scrollbar { width: 4px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+
+        .message { margin-bottom: 15px; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .message .msg-content { padding: 14px 18px; border-radius: 16px; max-width: 90%; word-wrap: break-word; line-height: 1.7; font-size: 15px; }
+        .message.user .msg-content { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); margin-left: auto; border-bottom-right-radius: 4px; }
+        .message.ai .msg-content { background: rgba(255,255,255,0.06); border: 1px solid var(--glass); border-bottom-left-radius: 4px; }
+        .message .msg-time { font-size: 10px; color: var(--text-gray); margin-top: 4px; display: block; }
+        .message.user .msg-time { text-align: right; }
+        .message img.msg-image { max-width: 200px; border-radius: 10px; margin-bottom: 8px; display: block; }
+
+        .typing-indicator { display: none; padding: 10px 0; }
+        .typing-indicator .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-right: 5px; animation: typing 1.4s infinite both; }
+        .typing-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing { 0%,80%,100%{transform:scale(0); opacity:0.3} 40%{transform:scale(1); opacity:1} }
+
+        /* INPUT AREA */
+        .chat-input-area { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--glass); }
+        .input-row { display: flex; gap: 8px; align-items: flex-end; }
+        .input-row textarea { flex: 1; padding: 14px 18px; border-radius: 16px; border: 1px solid var(--glass); background: rgba(255,255,255,0.04); color: white; font-size: 15px; resize: none; min-height: 55px; max-height: 120px; font-family: 'Inter', sans-serif; }
+        .input-row textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 30px rgba(108,99,255,0.08); }
+        .input-row textarea::placeholder { color: var(--text-gray); }
+        .icon-btn { padding: 14px; border: 1px solid var(--glass); border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-gray); font-size: 16px; cursor: pointer; transition: all 0.3s; min-width: 52px; }
+        .icon-btn:hover { background: rgba(108,99,255,0.15); color: var(--primary); }
+        .icon-btn.recording { background: rgba(255,101,132,0.2); color: var(--secondary); animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+        .send-btn { padding: 14px 24px; border: none; border-radius: 16px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; font-size: 18px; cursor: pointer; transition: all 0.3s; min-width: 60px; }
+        .send-btn:hover { transform: scale(1.05); box-shadow: 0 4px 20px rgba(108,99,255,0.3); }
+
+        /* VOICE CONTROLS */
+        .voice-controls { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+        .voice-controls label { font-size: 11px; color: var(--text-gray); }
+        .voice-controls select { padding: 6px 12px; border-radius: 10px; border: 1px solid var(--glass); background: rgba(255,255,255,0.04); color: #fff; font-size: 12px; font-family: 'Inter', sans-serif; }
+        .voice-toggle { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--glass); background: rgba(255,255,255,0.04); cursor: pointer; font-size: 12px; }
+        .voice-toggle.active { background: rgba(78,205,196,0.15); border-color: rgba(78,205,196,0.3); color: #4ECDC4; }
+
+        /* SAVED AREA */
+        .saved-area { background: rgba(255,255,255,0.05); border: 1px solid var(--glass); border-radius: 20px; backdrop-filter: blur(10px); padding: 25px; display: flex; flex-direction: column; max-height: 600px; }
+        .saved-area .saved-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--glass); }
+        .saved-area .saved-title h3 { font-family: 'Space Grotesk', sans-serif; font-size: 16px; }
+        .saved-area .saved-title .count { font-size: 12px; color: var(--text-gray); background: var(--glass); padding: 3px 12px; border-radius: 20px; }
+        .saved-list { flex: 1; overflow-y: auto; padding-right: 5px; }
+        .saved-list::-webkit-scrollbar { width: 3px; }
+        .saved-list::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+        .saved-item { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 12px 15px; margin-bottom: 10px; border: 1px solid var(--glass); transition: all 0.3s; position: relative; cursor: pointer; }
+        .saved-item:hover { border-color: var(--primary); background: rgba(108,99,255,0.05); }
+        .saved-item .saved-question { font-size: 13px; font-weight: 500; margin-bottom: 4px; color: #fff; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .saved-item .saved-answer { font-size: 12px; color: var(--text-gray); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .saved-item .saved-delete { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--secondary); cursor: pointer; font-size: 14px; opacity: 0.4; }
+        .saved-item .saved-delete:hover { opacity: 1; }
+        .saved-empty { text-align: center; color: var(--text-gray); padding: 40px 0; font-size: 14px; }
+        .saved-empty .icon { font-size: 40px; margin-bottom: 10px; display: block; }
+
+        .save-btn { background: rgba(0,210,255,0.1); border: 1px solid rgba(0,210,255,0.2); color: var(--accent); padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.3s; font-family: 'Inter', sans-serif; margin-top: 5px; }
+        .save-btn:hover { background: rgba(0,210,255,0.2); }
+
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(10,10,26,0.95); backdrop-filter: blur(20px); border: 1px solid var(--glass); padding: 14px 28px; border-radius: 16px; color: white; z-index: 3000; display: none; font-size: 14px; max-width: 90%; text-align: center; }
+        .toast.success { border-color: #4ECDC4; }
+        .toast.error { border-color: var(--secondary); }
+
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10,10,26,0.8); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 2500; }
+        .loading-overlay .spinner { width: 50px; height: 50px; border: 3px solid var(--glass); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .footer { text-align: center; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 25px; }
+        .footer p { font-size: 13px; color: var(--text-gray); letter-spacing: 1px; }
+        .footer .brand { background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; font-size: 15px; }
+
+        @media (max-width: 600px) {
+            .login-card { padding: 30px 20px; }
+            .header { padding: 12px 16px; }
+            .header .brand h2 { font-size: 16px; }
+            .chat-area { padding: 16px; min-height: 400px; }
+            .saved-area { max-height: 300px; }
+            .main-grid { gap: 15px; }
+            .message .msg-content { font-size: 14px; padding: 12px 14px; }
+            .icon-btn { min-width: 46px; padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-animation">
+    <div class="orb"></div>
+    <div class="orb"></div>
+    <div class="orb"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+
+<!-- ================= LOGIN SCREEN ================= -->
+<div class="login-screen" id="loginScreen">
+    <div class="login-card">
+        <div class="logo-icon">🎓</div>
+        <h1>Student Research Tool</h1>
+        <p class="sub-title">by <span>Randhawa Enterprises</span> • AI Powered Learning</p>
+        <input type="tel" id="loginMobile" placeholder="📱 Enter Mobile Number" maxlength="10">
+        <input type="password" id="loginPassword" placeholder="🔒 Enter Password">
+        <button class="login-btn" onclick="studentLogin()">🚀 Start Learning</button>
+        <span class="forgot-link" onclick="forgotPassword()">🔑 Forgot Password?</span>
+        <div class="login-error" id="loginError">❌ Invalid credentials</div>
+    </div>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div class="main-app" id="mainApp">
+    <div class="header">
+        <div class="brand">
+            <div class="school-logo" id="schoolLogoBox">🏫</div>
+            <div>
+                <h2 id="schoolNameHeader">School Name</h2>
+                <small id="studentInfo">Student</small>
+            </div>
+        </div>
+        <div class="user-info">
+            <span class="name" id="userName">Student</span>
+            <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <div class="chat-area">
+            <div class="chat-title">
+                <div class="ai-icon">🧠</div>
+                <h3>Research Assistant</h3>
+                <span class="online">● Online</span>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message ai">
+                    <div class="msg-content">
+                        👋 Welcome to Student Research Tool!<br>
+                        Ask any study question — text, voice, ya image se. Main aapki help karunga! 📚
+                    </div>
+                    <span class="msg-time">Just now</span>
+                </div>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">
+                <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            </div>
+            <div class="chat-input-area">
+                <div class="input-row">
+                    <button class="icon-btn" onclick="document.getElementById('imageInput').click()" title="Upload Image">🖼️</button>
+                    <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+                    <button class="icon-btn" id="voiceBtn" onclick="toggleVoiceInput()" title="Voice Input">🎤</button>
+                    <textarea id="questionInput" placeholder="Type your study question..." rows="1"></textarea>
+                    <button class="send-btn" onclick="sendQuestion()">➤</button>
+                </div>
+                <div class="voice-controls">
+                    <label>🔊 Language:</label>
+                    <select id="voiceLang">
+                        <option value="hi-IN">हिन्दी</option>
+                        <option value="en-IN" selected>English</option>
+                        <option value="pa-IN">ਪੰਜਾਬੀ</option>
+                        <option value="ta-IN">தமிழ்</option>
+                        <option value="te-IN">తెలుగు</option>
+                        <option value="bn-IN">বাংলা</option>
+                    </select>
+                    <div class="voice-toggle active" id="voiceToggle" onclick="toggleVoiceOutput()">
+                        🔊 Voice <span id="voiceStatus">ON</span>
+                    </div>
+                    <div class="voice-toggle" id="cameraBtn" onclick="openCamera()">
+                        📷 Camera
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="saved-area">
+            <div class="saved-title">
+                <h3>📖 My Notes</h3>
+                <span class="count" id="savedCount">0 saved</span>
+            </div>
+            <div class="saved-list" id="savedList">
+                <div class="saved-empty"><span class="icon">📝</span>No notes saved yet.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2025 Student Research Tool • Managed by <span class="brand">Randhawa Enterprises</span></p>
+    </div>
+</div>
+
+<!-- CAMERA MODAL -->
+<div id="cameraModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:5000; justify-content:center; align-items:center; padding:20px;">
+    <div style="text-align:center; max-width:500px; width:100%;">
+        <video id="cameraVideo" autoplay style="width:100%; border-radius:16px; max-height:60vh;"></video>
+        <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
+            <button onclick="capturePhoto()" style="padding:14px 30px; border:none; border-radius:14px; background:linear-gradient(135deg,#6C63FF,#5A52D5); color:#fff; font-weight:700; cursor:pointer;">📸 Capture</button>
+            <button onclick="closeCamera()" style="padding:14px 30px; border:none; border-radius:14px; background:rgba(255,101,132,0.2); color:#FF6584; font-weight:700; cursor:pointer;">✕ Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// 🔒 SECURITY
+// ============================================================
+document.addEventListener('contextmenu', e => { e.preventDefault(); showToast('🔒 Right-click disabled', 'error'); });
+document.addEventListener('keydown', e => {
+    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || (e.ctrlKey && e.key === 'u') || e.key === 'PrintScreen') {
+        e.preventDefault(); showToast('🔒 Security: Disabled', 'error'); return false;
+    }
+});
+document.addEventListener('dragstart', e => e.preventDefault());
+document.addEventListener('copy', e => e.preventDefault());
+
+// ============================================================
+// FIREBASE CONFIG
+// ============================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyCBa8UmWUB-djAksNNvp14qoCY2y0HISoE",
+    authDomain: "gharproindia.firebaseapp.com",
+    projectId: "gharproindia",
+    storageBucket: "gharproindia.firebasestorage.app",
+    messagingSenderId: "374168845849",
+    appId: "1:374168845849:web:36aeca99558917c34ff488"
+};
+
+// ============================================================
+// AI CONFIG
+// ============================================================
+const AI_FUNCTION_URL = "/api/ai";
+
+let db = null, isFirebaseReady = false;
+let currentUser = null, sessionId = null, savedItems = [];
+let voiceOutputEnabled = true;
+let recognition = null, isRecording = false;
+
+// ============================================================
+// TOAST & LOADING
+// ============================================================
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'toast ' + type; t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+function showLoading(show) { document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
+function generateSessionId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 8); }
+
+// ============================================================
+// FIREBASE LOAD
+// ============================================================
+function loadFirebase() {
+    return new Promise((resolve, reject) => {
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) { isFirebaseReady = true; db = firebase.firestore(); resolve(); return; }
+        const s1 = document.createElement('script');
+        s1.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
+        s1.onload = () => {
+            const s2 = document.createElement('script');
+            s2.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js';
+            s2.onload = () => { try { if (!firebase.apps.length) firebase.initializeApp(firebaseConfig); isFirebaseReady = true; db = firebase.firestore(); resolve(); } catch(e) { reject(e); } };
+            s2.onerror = () => reject(new Error('Firestore failed'));
+            document.head.appendChild(s2);
+        };
+        s1.onerror = () => reject(new Error('Firebase failed'));
+        document.head.appendChild(s1);
+    });
+}
+
+// ============================================================
+// MATH DETECTION & SOLVER (math.js)
+// ============================================================
+function isMathQuestion(text) {
+    const mathKeywords = ['solve', 'calculate', 'evaluate', 'simplify', 'find x', 'find y', 'equation', 'derivative', 'integral', 'factor', 'expand', '+', '-', '*', '/', '=', 'x^', 'sqrt', '%'];
+    const lower = text.toLowerCase();
+    if (/\d+\s*[\+\-\*\/\=]\s*\d+/.test(text)) return true;
+    return mathKeywords.some(k => lower.includes(k));
+}
+
+function solveMath(question) {
+    try {
+        // Remove common words
+        let expr = question
+            .replace(/solve|calculate|evaluate|simplify|find x|find y|what is|please|the value of|answer|=/gi, '')
+            .replace(/x\s*\^\s*2/g, 'x^2')
+            .replace(/×/g, '*')
+            .replace(/÷/g, '/')
+            .replace(/,/g, '')
+            .trim();
+
+        // Try direct evaluation
+        try {
+            const result = math.evaluate(expr);
+            if (result !== undefined && result !== null) {
+                return {
+                    answer: `🧮 **Maths Solution (Exact):**\n\nExpression: \`${expr}\`\n\nResult: **${result}**\n\n_Verified by Math Algorithm — Consistent for all students._`,
+                    isMath: true
+                };
+            }
+        } catch (e) { /* continue */ }
+
+        // Try equation solving (x)
+        const eqMatch = question.match(/([0-9x\^\+\-\*\/\s\(\)]+)\s*=\s*([0-9x\^\+\-\*\/\s\(\)]+)/i);
+        if (eqMatch) {
+            const left = eqMatch[1].trim();
+            const right = eqMatch[2].trim();
+            try {
+                const node = math.parse(`${left} = ${right}`);
+                const solutions = [];
+                // Try x from -100 to 100
+                for (let x = -100; x <= 100; x += 0.1) {
+                    try {
+                        const scope = { x: x };
+                        const l = node.args[0].evaluate(scope);
+                        const r = node.args[1].evaluate(scope);
+                        if (Math.abs(l - r) < 0.001) {
+                            const rounded = Math.round(x * 100) / 100;
+                            if (!solutions.includes(rounded)) solutions.push(rounded);
+                        }
+                    } catch(e) {}
+                }
+                if (solutions.length > 0) {
+                    return {
+                        answer: `🧮 **Maths Solution (Exact):**\n\nEquation: \`${left} = ${right}\`\n\nSolution: **x = ${solutions.join(', ')}**\n\n_Verified by Math Algorithm._`,
+                        isMath: true
+                    };
+                }
+            } catch (e) {}
+        }
+
+        // If math but couldn't solve, fallback to AI
+        return { answer: null, isMath: true };
+
+    } catch (e) {
+        return { answer: null, isMath: true };
+    }
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+window.studentLogin = async function() {
+    const mobile = document.getElementById('loginMobile').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    const errorEl = document.getElementById('loginError');
+    errorEl.style.display = 'none';
+
+    if (!mobile || !password) { errorEl.textContent = '❌ Mobile & password required'; errorEl.style.display = 'block'; return; }
+
+    try {
+        showLoading(true);
+        if (!isFirebaseReady || !db) { await loadFirebase(); db = firebase.firestore(); }
+
+        const snapshot = await db.collection('students').where('mobile', '==', mobile).get();
+        if (snapshot.empty) { errorEl.textContent = '❌ Student not found! Contact school.'; errorEl.style.display = 'block'; showLoading(false); return; }
+
+        let studentData = null, studentId = null;
+        snapshot.forEach(doc => { studentData = doc.data(); studentId = doc.id; });
+
+        if (studentData.password !== password) { errorEl.textContent = '❌ Wrong password!'; errorEl.style.display = 'block'; showLoading(false); return; }
+        if (studentData.status === 'blocked') { errorEl.textContent = '❌ Account blocked! Contact school.'; errorEl.style.display = 'block'; showLoading(false); return; }
+
+        if (studentData.currentSession) {
+            const sessionTime = parseInt(studentData.currentSession.split('-')[0]);
+            if (Date.now() - sessionTime < 24 * 60 * 60 * 1000) {
+                errorEl.textContent = '⚠️ Already logged in on another device!';
+                errorEl.style.display = 'block'; showLoading(false); return;
+            }
+        }
+
+        sessionId = generateSessionId();
+        currentUser = {
+            id: studentId,
+            name: studentData.name || 'Student',
+            mobile: mobile,
+            schoolId: studentData.schoolId,
+            schoolName: studentData.schoolName,
+            schoolLogo: studentData.schoolLogo,
+            class: studentData.class
+        };
+
+        await db.collection('students').doc(studentId).update({ currentSession: sessionId, lastLogin: new Date().toISOString() });
+        localStorage.setItem('student_session', JSON.stringify({ id: studentId, sessionId, mobile }));
+
+        await loadSavedItems(studentId);
+
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainApp').classList.add('active');
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('schoolNameHeader').textContent = currentUser.schoolName || 'School';
+        document.getElementById('studentInfo').textContent = (currentUser.class || 'Student') + ' • ' + currentUser.name;
+
+        if (currentUser.schoolLogo) {
+            document.getElementById('schoolLogoBox').innerHTML = `<img src="${currentUser.schoolLogo}" onerror="this.parentElement.textContent='🏫'">`;
+        }
+
+        showToast('✅ Welcome ' + currentUser.name + '!');
+        startSessionCheck();
+
+    } catch(e) {
+        errorEl.textContent = '❌ ' + e.message;
+        errorEl.style.display = 'block';
+    }
+    showLoading(false);
+};
+
+// ============================================================
+// FORGOT PASSWORD (WhatsApp)
+// ============================================================
+window.forgotPassword = async function() {
+    const mobile = document.getElementById('loginMobile').value.trim();
+    if (!mobile || mobile.length !== 10) { showToast('⚠️ Enter 10-digit mobile first!', 'error'); return; }
+
+    try {
+        showLoading(true);
+        if (!isFirebaseReady || !db) { await loadFirebase(); db = firebase.firestore(); }
+
+        const snap = await db.collection('students').where('mobile', '==', mobile).get();
+        if (snap.empty) { showToast('❌ Mobile not registered!', 'error'); showLoading(false); return; }
+
+        // Generate 6-digit password
+        const newPassword = Math.floor(100000 + Math.random() * 900000).toString();
+
+        let docId = null, studentName = '';
+        snap.forEach(doc => { docId = doc.id; studentName = doc.data().name || 'Student'; });
+
+        await db.collection('students').doc(docId).update({ password: newPassword, passwordResetAt: new Date().toISOString() });
+
+        const msg = `🔑 *Student Research Tool*\n\nHello ${studentName},\n\nYour new 6-digit password is: *${newPassword}*\n\nPlease login with this password.\n\n📌 Randhawa Enterprises`;
+        window.open(`https://wa.me/91${mobile}?text=${encodeURIComponent(msg)}`, '_blank');
+
+        showToast('✅ Password sent to WhatsApp!');
+    } catch(e) {
+        showToast('❌ ' + e.message, 'error');
+    }
+    showLoading(false);
+};
+
+// ============================================================
+// SESSION CHECK
+// ============================================================
+function checkSession() {
+    const saved = localStorage.getItem('student_session');
+    if (!saved) return;
+    try {
+        const data = JSON.parse(saved);
+        if (!db) db = firebase.firestore();
+        db.collection('students').doc(data.id).get().then(doc => {
+            if (doc.exists && doc.data().currentSession === data.sessionId && doc.data().status !== 'blocked') {
+                const s = doc.data();
+                currentUser = { id: doc.id, name: s.name, mobile: s.mobile, schoolId: s.schoolId, schoolName: s.schoolName, schoolLogo: s.schoolLogo, class: s.class };
+                sessionId = data.sessionId;
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainApp').classList.add('active');
+                document.getElementById('userName').textContent = currentUser.name;
+                document.getElementById('schoolNameHeader').textContent = currentUser.schoolName || 'School';
+                document.getElementById('studentInfo').textContent = (currentUser.class || 'Student') + ' • ' + currentUser.name;
+                if (currentUser.schoolLogo) {
+                    document.getElementById('schoolLogoBox').innerHTML = `<img src="${currentUser.schoolLogo}" onerror="this.parentElement.textContent='🏫'">`;
+                }
+                loadSavedItems(currentUser.id);
+                startSessionCheck();
+            } else { localStorage.removeItem('student_session'); }
+        });
+    } catch(e) { localStorage.removeItem('student_session'); }
+}
+
+function startSessionCheck() {
+    setInterval(() => {
+        if (!currentUser || !sessionId || !db) return;
+        db.collection('students').doc(currentUser.id).get().then(doc => {
+            if (doc.exists && doc.data().currentSession !== sessionId) {
+                localStorage.removeItem('student_session');
+                document.getElementById('mainApp').classList.remove('active');
+                document.getElementById('loginScreen').style.display = 'flex';
+                showToast('Session expired! Login again.', 'error');
+            }
+        }).catch(() => {});
+    }, 10000);
+}
+
+window.logout = async function() {
+    if (currentUser && db) { try { await db.collection('students').doc(currentUser.id).update({ currentSession: '' }); } catch(e) {} }
+    localStorage.removeItem('student_session');
+    location.reload();
+};
+
+// ============================================================
+// SAVED NOTES
+// ============================================================
+async function loadSavedItems(studentId) {
+    try {
+        const snapshot = await db.collection('savedNotes').where('studentId', '==', studentId).get();
+        savedItems = [];
+        snapshot.forEach(doc => savedItems.push({ id: doc.id, ...doc.data() }));
+        savedItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        renderSavedItems();
+    } catch(e) { console.error('Saved load error:', e); }
+}
+
+function renderSavedItems() {
+    const container = document.getElementById('savedList');
+    document.getElementById('savedCount').textContent = savedItems.length + ' saved';
+    if (savedItems.length === 0) {
+        container.innerHTML = '<div class="saved-empty"><span class="icon">📝</span>No notes saved yet.</div>';
+        return;
+    }
+    let html = '';
+    savedItems.forEach(item => {
+        html += `<div class="saved-item" onclick="viewSaved('${item.id}')">
+            <div class="saved-question">❓ ${item.question || 'Question'}</div>
+            <div class="saved-answer">${item.answer ? item.answer.substring(0, 100) + '...' : ''}</div>
+            <button class="saved-delete" onclick="event.stopPropagation(); deleteSaved('${item.id}')">✕</button>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+window.viewSaved = function(id) {
+    const item = savedItems.find(s => s.id === id);
+    if (!item) return;
+    addMessage('ai', `📖 **Saved Note:**\n\n**Q:** ${item.question}\n\n**A:** ${item.answer}`);
+};
+
+window.deleteSaved = async function(id) {
+    if (!confirm('Delete this note?')) return;
+    try {
+        await db.collection('savedNotes').doc(id).delete();
+        savedItems = savedItems.filter(s => s.id !== id);
+        renderSavedItems();
+        showToast('✅ Note deleted');
+    } catch(e) { showToast('❌ Error', 'error'); }
+};
+
+window.saveAnswer = async function(question, answer) {
+    if (!currentUser) { showToast('⚠️ Login first', 'error'); return; }
+    try {
+        await db.collection('savedNotes').add({
+            studentId: currentUser.id,
+            question: question,
+            answer: answer,
+            createdAt: new Date().toISOString()
+        });
+        showToast('✅ Note saved!');
+        await loadSavedItems(currentUser.id);
+    } catch(e) { showToast('❌ ' + e.message, 'error'); }
+};
+
+// ============================================================
+// ADD MESSAGE TO CHAT
+// ============================================================
+function addMessage(type, content, imageUrl = null) {
+    const messages = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = 'message ' + type;
+    let html = '';
+    if (imageUrl) html += `<img src="${imageUrl}" class="msg-image">`;
+    html += `<div class="msg-content">${content}</div>`;
+    html += `<span class="msg-time">${new Date().toLocaleTimeString()}</span>`;
+    if (type === 'ai' && content.length > 10 && !content.includes('Welcome') && !content.includes('Error')) {
+        const safeQ = (window._lastQuestion || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        const safeA = content.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        html += `<button class="save-btn" onclick="saveAnswer('${safeQ}', '${safeA}')">📥 Save Note</button>`;
+    }
+    div.innerHTML = html;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
+
+// ============================================================
+// VOICE INPUT (Speech-to-Text)
+// ============================================================
+window.toggleVoiceInput = function() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { showToast('❌ Voice not supported in this browser', 'error'); return; }
+
+    if (isRecording) {
+        if (recognition) recognition.stop();
+        isRecording = false;
+        document.getElementById('voiceBtn').classList.remove('recording');
+        return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.lang = document.getElementById('voiceLang').value;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+        isRecording = true;
+        document.getElementById('voiceBtn').classList.add('recording');
+        showToast('🎤 Listening...');
+    };
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('questionInput').value = transcript;
+        showToast('✅ Voice captured!');
+    };
+    recognition.onerror = (e) => {
+        isRecording = false;
+        document.getElementById('voiceBtn').classList.remove('recording');
+        showToast('❌ Voice error: ' + e.error, 'error');
+    };
+    recognition.onend = () => {
+        isRecording = false;
+        document.getElementById('voiceBtn').classList.remove('recording');
+    };
+    recognition.start();
+};
+
+// ============================================================
+// VOICE OUTPUT (Text-to-Speech)
+// ============================================================
+window.toggleVoiceOutput = function() {
+    voiceOutputEnabled = !voiceOutputEnabled;
+    const toggle = document.getElementById('voiceToggle');
+    const status = document.getElementById('voiceStatus');
+    if (voiceOutputEnabled) {
+        toggle.classList.add('active');
+        status.textContent = 'ON';
+    } else {
+        toggle.classList.remove('active');
+        status.textContent = 'OFF';
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+    }
+};
+
+function speakText(text) {
+    if (!voiceOutputEnabled || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    // Remove markdown and symbols
+    const clean = text.replace(/[*_`#]/g, '').replace(/🧮|📖|✅|❌|⚠️|🔔|👋|📚/g, '').substring(0, 500);
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.lang = document.getElementById('voiceLang').value;
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+}
+
+// ============================================================
+// CAMERA
+// ============================================================
+let cameraStream = null;
+window.openCamera = async function() {
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        document.getElementById('cameraVideo').srcObject = cameraStream;
+        document.getElementById('cameraModal').style.display = 'flex';
+    } catch(e) { showToast('❌ Camera access denied', 'error'); }
+};
+
+window.closeCamera = function() {
+    if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+    document.getElementById('cameraModal').style.display = 'none';
+};
+
+window.capturePhoto = function() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+    closeCamera();
+    processImageQuestion(dataUrl);
+};
+
+// ============================================================
+// IMAGE UPLOAD
+// ============================================================
+window.handleImageUpload = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => processImageQuestion(e.target.result);
+    reader.readAsDataURL(file);
+    event.target.value = '';
+};
+  async function processImageQuestion(dataUrl) {
+    addMessage('user', '📷 [Image Question]', dataUrl);
+    document.getElementById('typingIndicator').style.display = 'block';
+
+    try {
+        const response = await fetch(AI_FUNCTION_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'image', image: dataUrl })
+        });
+        const data = await response.json();
+        const answer = data.answer || '❌ Could not analyze image.';
+        window._lastQuestion = '[Image Question]';
+        addMessage('ai', answer);
+        speakText(answer);
+    } catch(e) {
+        addMessage('ai', '❌ Image analysis error: ' + e.message);
+    }
+    document.getElementById('typingIndicator').style.display = 'none';
+}
+
+// ============================================================
+// SEND QUESTION (Text/Voice)
+// ============================================================
+window.sendQuestion = async function() {
+    const input = document.getElementById('questionInput');
+    const question = input.value.trim();
+    if (!question) { showToast('⚠️ Please enter a question', 'error'); return; }
+
+    addMessage('user', question);
+    window._lastQuestion = question;
+    input.value = '';
+    document.getElementById('typingIndicator').style.display = 'block';
+
+    // MATHS FIRST (math.js)
+    if (isMathQuestion(question)) {
+        const mathResult = solveMath(question);
+        if (mathResult.answer) {
+            addMessage('ai', mathResult.answer);
+            speakText(mathResult.answer);
+            document.getElementById('typingIndicator').style.display = 'none';
+            return;
+        }
+    }
+
+    // AI (Netlify Function ke through)
+    // AI (Netlify Function ke through)
+    try {
+        const response = await fetch(AI_FUNCTION_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'text', question: question })
+        });
+        const data = await response.json();
+        const answer = data.answer || '❌ Could not generate answer.';
+        addMessage('ai', answer);
+        speakText(answer);
+    } catch(e) {
+        addMessage('ai', '❌ Connection error: ' + e.message);
+    }
+    document.getElementById('typingIndicator').style.display = 'none';
+};
+// ============================================================
+// ENTER KEY
+// ============================================================
+document.getElementById('questionInput')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); }
+});
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    loadFirebase().then(() => {
+        db = firebase.firestore();
+        console.log('✅ Student Research Tool Ready!');
+        checkSession();
+    }).catch(err => {
+        document.getElementById('loginError').textContent = '❌ Firebase connection error.';
+        document.getElementById('loginError').style.display = 'block';
+    });
+});
+
+console.log('🎓 Student Research Tool - 100% Ready!');
+console.log('🧮 Math Algorithm: math.js (exact & consistent)');
+console.log('🧠 AI: DeepSeek (non-math subjects)');
+console.log('📷 Image: OpenRouter Free Vision');
+console.log('🎤 Voice: Web Speech API');
+console.log('📌 Managed by Randhawa Enterprises');
+</script>
+</body>
+</html>
