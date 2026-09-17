@@ -3,110 +3,281 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Admin - Student Research Tool</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Super Admin • Student Research Tool</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #0a0a1a; min-height: 100vh; padding: 20px; color: #fff; }
-        .container { max-width: 900px; margin: 0 auto; }
-        
-        .header { background: linear-gradient(135deg, #6C63FF, #5A52D5); border-radius: 20px; padding: 25px 30px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
-        .header h1 { font-family: 'Space Grotesk', sans-serif; font-size: 26px; }
-        .header .badge { background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; }
-        
-        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 25px; margin-bottom: 20px; }
-        .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
-        
-        .form-grid input, .form-grid select { padding: 14px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; font-family: 'Inter', sans-serif; }
-        .form-grid input:focus, .form-grid select:focus { outline: none; border-color: #6C63FF; box-shadow: 0 0 20px rgba(108,99,255,0.15); }
-        .form-grid input::placeholder { color: #a0a0b8; }
-        
-        .btn-primary { width: 100%; margin-top: 15px; padding: 15px; border: none; border-radius: 12px; background: linear-gradient(135deg, #6C63FF, #5A52D5); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: 'Inter', sans-serif; }
-        .btn-primary:hover { transform: scale(1.02); box-shadow: 0 8px 30px rgba(108,99,255,0.4); }
+        :root {
+            --primary: #7C6BFF; --primary-dark: #5A4FCF; --accent: #00E5FF;
+            --pink: #FF4D8D; --success: #00E5A0; --danger: #FF4D6D;
+            --bg-1: #06060f; --bg-2: #0d0d1f;
+            --card: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.08);
+            --text: #ffffff; --muted: #8b8ba7;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-1); min-height: 100vh; color: var(--text); padding: 24px 20px 40px; overflow-x: hidden; position: relative; }
+        .bg-orbs { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: radial-gradient(ellipse at top left, #12122b 0%, #06060f 50%, #0a0a18 100%); }
+        .bg-orbs .orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.4; animation: floatOrb 25s infinite ease-in-out; }
+        .orb-1 { width: 500px; height: 500px; background: var(--primary); top: -200px; left: -150px; }
+        .orb-2 { width: 400px; height: 400px; background: var(--accent); top: 40%; right: -150px; animation-delay: -8s; }
+        .orb-3 { width: 350px; height: 350px; background: var(--pink); bottom: -150px; left: 30%; animation-delay: -15s; }
+        @keyframes floatOrb { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(60px,-40px) scale(1.15); } 66% { transform: translate(-40px,50px) scale(0.9); } }
+        .container { max-width: 1080px; margin: 0 auto; position: relative; z-index: 1; }
+        .header { background: linear-gradient(135deg, rgba(124,107,255,0.15), rgba(0,229,255,0.08)); border: 1px solid rgba(124,107,255,0.25); border-radius: 24px; padding: 26px 32px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; backdrop-filter: blur(20px); box-shadow: 0 10px 40px rgba(124,107,255,0.1); position: relative; overflow: hidden; }
+        .header::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent); animation: shimmer 4s infinite; }
+        @keyframes shimmer { to { left: 100%; } }
+        .header-left { display: flex; align-items: center; gap: 18px; z-index: 1; }
+        .header-icon { width: 60px; height: 60px; border-radius: 18px; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 26px; color: #fff; box-shadow: 0 8px 24px rgba(124,107,255,0.4); }
+        .header h1 { font-family: 'Sora', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+        .header .subtitle { font-size: 13px; color: var(--muted); margin-top: 3px; }
+        .header-badge { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); padding: 10px 22px; border-radius: 30px; font-size: 13px; font-weight: 600; z-index: 1; display: flex; align-items: center; gap: 8px; }
+        .header-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 28px; }
+        @media (max-width: 640px) { .stats { grid-template-columns: 1fr; } }
+        .stat-box { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 24px 22px; position: relative; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); backdrop-filter: blur(10px); }
+        .stat-box::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--primary), var(--accent)); opacity: 0; transition: opacity 0.4s; }
+        .stat-box:hover { transform: translateY(-6px); border-color: rgba(124,107,255,0.4); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+        .stat-box:hover::after { opacity: 1; }
+        .stat-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 14px; }
+        .stat-box:nth-child(1) .stat-icon { background: rgba(124,107,255,0.15); color: var(--primary); }
+        .stat-box:nth-child(2) .stat-icon { background: rgba(0,229,255,0.15); color: var(--accent); }
+        .stat-box:nth-child(3) .stat-icon { background: rgba(255,77,141,0.15); color: var(--pink); }
+        .stat-box .num { font-family: 'Sora', sans-serif; font-size: 36px; font-weight: 700; letter-spacing: -1px; }
+        .stat-box:nth-child(1) .num { color: var(--primary); }
+        .stat-box:nth-child(2) .num { color: var(--accent); }
+        .stat-box:nth-child(3) .num { color: var(--pink); }
+        .stat-box .label { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 22px; padding: 28px; margin-bottom: 22px; backdrop-filter: blur(10px); transition: border-color 0.3s; }
+        .card:hover { border-color: rgba(124,107,255,0.2); }
+        .card-title { font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 600; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .card-title .title-wrap { display: flex; align-items: center; gap: 12px; }
+        .card-title .title-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); display: flex; align-items: center; justify-content: center; font-size: 15px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+        .form-grid input, .form-grid select { padding: 15px 18px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif; transition: all 0.3s; }
+        .form-grid input:focus, .form-grid select:focus { outline: none; border-color: var(--primary); background: rgba(124,107,255,0.05); box-shadow: 0 0 0 4px rgba(124,107,255,0.1); }
+        .form-grid input::placeholder { color: var(--muted); }
+        .logo-upload-wrap { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; background: rgba(255,255,255,0.02); border: 1.5px dashed rgba(124,107,255,0.3); border-radius: 16px; padding: 16px; cursor: pointer; transition: all 0.3s; }
+        .logo-upload-wrap:hover { border-color: var(--primary); background: rgba(124,107,255,0.05); transform: translateY(-2px); }
+        .logo-upload-wrap input[type="file"] { display: none; }
+        .logo-preview { width: 64px; height: 64px; border-radius: 14px; background: linear-gradient(135deg, rgba(124,107,255,0.15), rgba(0,229,255,0.1)); display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; flex-shrink: 0; border: 1px solid rgba(124,107,255,0.2); }
+        .logo-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .upload-info { flex: 1; }
+        .upload-info .title { font-weight: 600; font-size: 14px; margin-bottom: 3px; }
+        .upload-info .hint { font-size: 12px; color: var(--muted); }
+        .upload-info .upload-icon { color: var(--primary); font-size: 20px; }
+        .btn-primary { width: 100%; margin-top: 18px; padding: 16px; border: none; border-radius: 14px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; gap: 10px; position: relative; overflow: hidden; box-shadow: 0 8px 24px rgba(124,107,255,0.25); }
+        .btn-primary::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent); transition: left 0.6s; }
+        .btn-primary:hover::before { left: 100%; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(124,107,255,0.4); }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-whatsapp { background: linear-gradient(135deg, #25D366, #128C7E); box-shadow: 0 8px 24px rgba(37,211,102,0.25); }
+        .btn-whatsapp:hover { box-shadow: 0 12px 32px rgba(37,211,102,0.4); }
+        .btn-excel { background: linear-gradient(135deg, #1D6F42, #217346); padding: 10px 20px; border-radius: 12px; border: none; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; box-shadow: 0 4px 16px rgba(29,111,66,0.25); }
+        .btn-excel:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(29,111,66,0.4); }
+        .btn-refresh { background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.25); color: var(--accent); padding: 9px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 12px; font-family: 'Inter', sans-serif; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-refresh:hover { background: rgba(0,229,255,0.2); transform: translateY(-2px); }
         
-        .school-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 18px 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; transition: all 0.3s; }
-        .school-item:hover { border-color: #6C63FF; background: rgba(108,99,255,0.05); }
-        .school-item .logo { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; background: rgba(108,99,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 24px; }
-        .school-item .info { flex: 1; min-width: 150px; }
-        .school-item .info .name { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
-        .school-item .info .detail { font-size: 12px; color: #a0a0b8; }
-        .school-item .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        /* 🔥 NEW: BLOCK ALL / UNBLOCK ALL BUTTONS */
+        .btn-block-all {
+            background: linear-gradient(135deg, #FF4D6D, #C7294A);
+            color: #fff; padding: 10px 20px; border-radius: 12px;
+            border: none; font-weight: 700; font-size: 13px;
+            cursor: pointer; transition: all 0.3s;
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 4px 16px rgba(255,77,109,0.25);
+        }
+        .btn-block-all:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,77,109,0.4); }
+        .btn-unblock-all {
+            background: linear-gradient(135deg, #00E5A0, #00A878);
+            color: #fff; padding: 10px 20px; border-radius: 12px;
+            border: none; font-weight: 700; font-size: 13px;
+            cursor: pointer; transition: all 0.3s;
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 4px 16px rgba(0,229,160,0.25);
+        }
+        .btn-unblock-all:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,229,160,0.4); }
         
-        .btn-sm { padding: 8px 16px; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 600; border: none; transition: all 0.3s; font-family: 'Inter', sans-serif; }
-        .btn-view { background: rgba(78,205,196,0.15); color: #4ECDC4; border: 1px solid rgba(78,205,196,0.2); }
-        .btn-delete { background: rgba(255,101,132,0.15); color: #FF6584; border: 1px solid rgba(255,101,132,0.2); }
-        .btn-sm:hover { transform: scale(1.05); }
-        
-        .status-badge { padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-        .status-badge.active { background: rgba(78,205,196,0.15); color: #4ECDC4; }
-        .status-badge.blocked { background: rgba(255,101,132,0.15); color: #FF6584; }
-        
-        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
-        @media (max-width: 600px) { .stats { grid-template-columns: 1fr; } }
-        .stat-box { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 22px; text-align: center; }
-        .stat-box .num { font-size: 34px; font-weight: 800; color: #6C63FF; font-family: 'Space Grotesk', sans-serif; }
-        .stat-box .label { font-size: 12px; color: #a0a0b8; margin-top: 4px; }
-        
-        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(10,10,26,0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); padding: 14px 28px; border-radius: 16px; color: white; z-index: 3000; display: none; font-size: 14px; max-width: 90%; text-align: center; }
-        .toast.success { border-color: #4ECDC4; }
-        .toast.error { border-color: #FF6584; }
-        
-        .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 999; }
-        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #6C63FF; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        .school-item { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 18px; padding: 18px 22px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; transition: all 0.3s; position: relative; overflow: hidden; }
+        .school-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--primary), var(--accent)); opacity: 0; transition: opacity 0.3s; }
+        .school-item:hover { border-color: rgba(124,107,255,0.3); background: rgba(124,107,255,0.04); transform: translateX(4px); }
+        .school-item:hover::before { opacity: 1; }
+        .school-item .logo { width: 54px; height: 54px; border-radius: 14px; background: rgba(124,107,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden; flex-shrink: 0; border: 1px solid rgba(124,107,255,0.15); }
+        .school-item .logo img { width: 100%; height: 100%; object-fit: cover; }
+        .school-item .info { flex: 1; min-width: 180px; }
+        .school-item .info .name { font-family: 'Sora', sans-serif; font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+        .school-item .info .detail { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap; }
+        .school-item .info .detail i { width: 14px; opacity: 0.7; }
+        .school-item .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .status-badge { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 6px; }
+        .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+        .status-badge.active { background: rgba(0,229,160,0.12); color: var(--success); border: 1px solid rgba(0,229,160,0.2); }
+        .status-badge.active::before { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .status-badge.blocked { background: rgba(255,77,109,0.12); color: var(--danger); border: 1px solid rgba(255,77,109,0.2); }
+        .status-badge.blocked::before { background: var(--danger); }
+        .btn-sm { padding: 9px 14px; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 600; border: none; transition: all 0.3s; font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-delete { background: rgba(255,77,109,0.1); color: var(--danger); border: 1px solid rgba(255,77,109,0.2); }
+        .btn-delete:hover { background: rgba(255,77,109,0.2); transform: scale(1.05); }
+        .btn-toggle-block { background: rgba(124,107,255,0.1); color: var(--primary); border: 1px solid rgba(124,107,255,0.2); }
+        .btn-toggle-block:hover { background: rgba(124,107,255,0.2); transform: scale(1.05); }
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(13,13,31,0.95); backdrop-filter: blur(20px); border: 1px solid var(--border); padding: 15px 28px; border-radius: 16px; color: #fff; z-index: 3000; font-size: 14px; font-weight: 500; max-width: 90%; text-align: center; transition: transform 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.4s; opacity: 0; pointer-events: none; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 10px; }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.success { border-color: rgba(0,229,160,0.4); }
+        .toast.success::before { content: '✓'; color: var(--success); font-weight: 700; font-size: 16px; }
+        .toast.error { border-color: rgba(255,77,109,0.4); }
+        .toast.error::before { content: '✕'; color: var(--danger); font-weight: 700; font-size: 16px; }
+        .loading { position: fixed; inset: 0; background: rgba(6,6,15,0.85); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 9999; }
+        .loading.active { display: flex; }
+        .spinner { width: 50px; height: 50px; border: 3px solid rgba(124,107,255,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        
-        .empty-msg { text-align: center; color: #a0a0b8; padding: 40px; font-size: 14px; }
-        .empty-msg .icon { font-size: 50px; display: block; margin-bottom: 15px; opacity: 0.3; }
-        
-        .footer { text-align: center; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 30px; }
-        .footer p { font-size: 13px; color: #a0a0b8; letter-spacing: 1px; }
-        .footer .brand { background: linear-gradient(135deg, #6C63FF, #00D2FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; font-size: 15px; }
+        .empty-msg { text-align: center; color: var(--muted); padding: 50px 20px; font-size: 14px; }
+        .empty-msg .icon { font-size: 48px; display: block; margin-bottom: 16px; opacity: 0.25; }
+        .footer { text-align: center; padding: 24px 0 10px; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 40px; }
+        .footer p { font-size: 13px; color: var(--muted); letter-spacing: 0.5px; }
+        .footer .brand { background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; font-size: 14px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(6,6,15,0.9); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 5000; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: linear-gradient(160deg, #12122b, #0d0d1f); border: 1px solid rgba(124,107,255,0.25); border-radius: 24px; padding: 28px; max-width: 540px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 30px 80px rgba(0,0,0,0.6); animation: modalIn 0.4s cubic-bezier(0.4,0,0.2,1); }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.92) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { font-family: 'Sora', sans-serif; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .modal-close { background: rgba(255,77,109,0.1); border: 1px solid rgba(255,77,109,0.2); color: var(--danger); width: 34px; height: 34px; border-radius: 10px; cursor: pointer; font-size: 16px; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+        .modal-close:hover { background: rgba(255,77,109,0.2); transform: rotate(90deg); }
+        .modal-hint { font-size: 13px; color: var(--muted); margin-bottom: 18px; line-height: 1.6; }
+        .wa-list { display: flex; flex-direction: column; gap: 10px; }
+        .wa-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 14px; padding: 14px 18px; gap: 12px; transition: all 0.3s; }
+        .wa-item:hover { border-color: rgba(37,211,102,0.3); background: rgba(37,211,102,0.04); }
+        .wa-item .wa-info { flex: 1; }
+        .wa-item .wa-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+        .wa-item .wa-num { font-size: 12px; color: var(--muted); }
+        .wa-item .wa-btn { background: linear-gradient(135deg, #25D366, #128C7E); color: #fff; padding: 9px 18px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.3s; white-space: nowrap; }
+        .wa-item .wa-btn:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(37,211,102,0.4); }
     </style>
 </head>
 <body>
+
+<div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
 
 <div class="loading" id="loading"><div class="spinner"></div></div>
 <div class="toast" id="toast"></div>
 
 <div class="container">
     <div class="header">
-        <h1>👑 Super Admin Panel</h1>
-        <span class="badge">🎓 Student Research Tool</span>
+        <div class="header-left">
+            <div class="header-icon"><i class="fa-solid fa-crown"></i></div>
+            <div>
+                <h1>Super Admin Panel</h1>
+                <div class="subtitle">Student Research Tool • Randhawa Enterprises</div>
+            </div>
+        </div>
+        <div class="header-badge">
+            <span class="dot"></span> System Online
+        </div>
     </div>
 
     <div class="stats">
-        <div class="stat-box"><div class="num" id="statSchools">0</div><div class="label">Total Schools</div></div>
-        <div class="stat-box"><div class="num" id="statStudents" style="color:#4ECDC4;">0</div><div class="label">Total Students</div></div>
-        <div class="stat-box"><div class="num" id="statActive" style="color:#FF6584;">0</div><div class="label">Active Students</div></div>
-    </div>
-
-    <div class="card">
-        <div class="card-title">➕ Add New School</div>
-        <div class="form-grid">
-            <input type="text" id="schoolName" placeholder="School Name *">
-            <input type="text" id="schoolLogo" placeholder="School Logo URL (optional)">
-            <input type="text" id="subAdminName" placeholder="Sub-Admin Name *">
-            <input type="tel" id="subAdminMobile" placeholder="Sub-Admin Mobile (10 digits) *" maxlength="10">
-            <input type="password" id="subAdminPassword" placeholder="Sub-Admin Password *" value="school123">
-            <input type="text" id="schoolPincode" placeholder="School Pincode (optional)">
+        <div class="stat-box">
+            <div class="stat-icon"><i class="fa-solid fa-school"></i></div>
+            <div class="num" id="statSchools">0</div>
+            <div class="label">Total Schools</div>
         </div>
-        <button class="btn-primary" id="addSchoolBtn" onclick="addSchool()">➕ Add School</button>
+        <div class="stat-box">
+            <div class="stat-icon"><i class="fa-solid fa-user-graduate"></i></div>
+            <div class="num" id="statStudents">0</div>
+            <div class="label">Total Students</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-icon"><i class="fa-solid fa-bolt"></i></div>
+            <div class="num" id="statActive">0</div>
+            <div class="label">Active Students</div>
+        </div>
     </div>
 
     <div class="card">
         <div class="card-title">
-            <span>🏫 All Schools</span>
-            <button onclick="loadSchools()" style="background:rgba(78,205,196,0.15); border:1px solid rgba(78,205,196,0.2); color:#4ECDC4; padding:8px 18px; border-radius:12px; cursor:pointer; font-weight:600; font-size:12px;">🔄 Refresh</button>
+            <div class="title-wrap">
+                <div class="title-icon"><i class="fa-solid fa-plus"></i></div>
+                <span>Add New School</span>
+            </div>
+        </div>
+        <div class="form-grid">
+            <input type="text" id="schoolName" placeholder="🏫 School Name *">
+            <input type="text" id="subAdminName" placeholder="👤 Sub-Admin Name *">
+            <input type="tel" id="subAdminMobile" placeholder="📱 Sub-Admin Mobile (10 digits) *" maxlength="10">
+            <input type="password" id="subAdminPassword" placeholder="🔒 Sub-Admin Password (min 6 chars) *">
+            <input type="text" id="schoolPincode" placeholder="📍 School Pincode (optional)" maxlength="6">
+            <input type="text" id="schoolWhatsapp" placeholder="💬 WhatsApp Number (for bulk msg)" maxlength="10">
+        </div>
+        <div class="logo-upload-wrap" onclick="document.getElementById('schoolLogoInput').click()">
+            <div class="logo-preview" id="logoPreview">
+                <i class="fa-solid fa-image" style="opacity:0.4;"></i>
+            </div>
+            <div class="upload-info">
+                <div class="title">📷 Upload School Logo</div>
+                <div class="hint">PNG / JPEG • Max 1MB • Recommended 200×200</div>
+            </div>
+            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+            <input type="file" id="schoolLogoInput" accept="image/png, image/jpeg, image/jpg" onchange="handleLogoUpload(event)">
+        </div>
+        <input type="hidden" id="schoolLogo" value="">
+        <button class="btn-primary" id="addSchoolBtn" onclick="addSchool()">
+            <i class="fa-solid fa-plus"></i> Add School
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="card-title">
+            <div class="title-wrap">
+                <div class="title-icon" style="background:linear-gradient(135deg,#25D366,#128C7E);"><i class="fa-brands fa-whatsapp"></i></div>
+                <span>Bulk WhatsApp Message</span>
+            </div>
+        </div>
+        <div class="form-grid">
+            <input type="text" id="bulkWhatsappMessage" placeholder="✍️ Enter message for all active schools..." style="grid-column: span 2;">
+        </div>
+        <button class="btn-primary btn-whatsapp" onclick="openBulkWhatsApp()">
+            <i class="fa-brands fa-whatsapp"></i> Send to All Schools
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="card-title">
+            <div class="title-wrap">
+                <div class="title-icon"><i class="fa-solid fa-building-columns"></i></div>
+                <span>All Schools</span>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <!-- 🔥 NEW: BLOCK ALL / UNBLOCK ALL -->
+                <button class="btn-block-all" onclick="blockAllSchools()">
+                    <i class="fa-solid fa-lock"></i> Block All
+                </button>
+                <button class="btn-unblock-all" onclick="unblockAllSchools()">
+                    <i class="fa-solid fa-lock-open"></i> Unblock All
+                </button>
+                <button class="btn-excel" onclick="downloadSchoolsExcel()">
+                    <i class="fa-solid fa-file-excel"></i> Excel
+                </button>
+                <button class="btn-refresh" onclick="loadSchools()">
+                    <i class="fa-solid fa-rotate"></i> Refresh
+                </button>
+            </div>
         </div>
         <div id="schoolList">
-            <div class="empty-msg">Loading schools...</div>
+            <div class="empty-msg">
+                <span class="icon"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                Loading schools...
+            </div>
         </div>
     </div>
 
@@ -115,128 +286,180 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="bulkModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="fa-brands fa-whatsapp" style="color:#25D366;"></i> Send WhatsApp</h3>
+            <button class="modal-close" onclick="closeBulkModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-hint">
+            Click each button to open WhatsApp. Browser allows one tab at a time — click them one by one.
+        </div>
+        <div class="wa-list" id="waList"></div>
+    </div>
+</div>
+
 <script>
-// ============================================================
-// 🔒 SECURITY: F12, Right-click, Ctrl+Shift+I, Copy, PrintScreen
-// ============================================================
-document.addEventListener('contextmenu', function(e) { e.preventDefault(); showToast('🔒 Right-click disabled', 'error'); });
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'F12' || 
-        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || 
-        (e.ctrlKey && e.key === 'u') || 
+// ════════════════════════════════════════════════════════════
+// 🔒 SECURITY
+// ════════════════════════════════════════════════════════════
+document.addEventListener('contextmenu', e => { e.preventDefault(); showToast('Right-click disabled', 'error'); });
+document.addEventListener('keydown', e => {
+    if (e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+        (e.ctrlKey && e.key === 'u') ||
         e.key === 'PrintScreen') {
-        e.preventDefault(); showToast('🔒 Security: Disabled', 'error'); return false;
+        e.preventDefault(); showToast('Security: Disabled', 'error'); return false;
     }
 });
-document.addEventListener('dragstart', function(e) { e.preventDefault(); });
-document.addEventListener('copy', function(e) { e.preventDefault(); });
+document.addEventListener('dragstart', e => e.preventDefault());
+document.addEventListener('copy', e => e.preventDefault());
 
-// ============================================================
-// FIREBASE CONFIG
-// ============================================================
+// ════════════════════════════════════════════════════════════
+// 🔥 FIREBASE CONFIG — AAPKA ACTUAL CONFIG
+// ════════════════════════════════════════════════════════════
 const firebaseConfig = {
-    apiKey: "AIzaSyCBa8UmWUB-djAksNNvp14qoCY2y0HISoE",
-    authDomain: "gharproindia.firebaseapp.com",
-    projectId: "gharproindia",
-    storageBucket: "gharproindia.firebasestorage.app",
-    messagingSenderId: "374168845849",
-    appId: "1:374168845849:web:36aeca99558917c34ff488"
+    apiKey: "AIzaSyB2Co78OD9qh8OLKJJANJsGKlw1q5Hb3Rs",
+    authDomain: "researchtoolbyre.firebaseapp.com",
+    projectId: "researchtoolbyre",
+    storageBucket: "researchtoolbyre.firebasestorage.app",
+    messagingSenderId: "476795624085",
+    appId: "1:476795624085:web:1076020bd156444916999c"
 };
 
 let db = null;
 let isFirebaseReady = false;
+let uploadedLogoData = '';
+let allSchoolsCache = [];
 
+// ════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════
 function showToast(msg, type = 'success') {
-    const toast = document.getElementById('toast');
-    toast.textContent = msg;
-    toast.className = 'toast ' + type;
-    toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + type;
+    t.classList.add('show');
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
 }
-function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
+function showLoading(show) {
+    document.getElementById('loading').classList.toggle('active', show);
+}
 
 function loadFirebase() {
     return new Promise((resolve, reject) => {
         if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
             isFirebaseReady = true; db = firebase.firestore(); resolve(); return;
         }
-        const script = document.createElement('script');
-        script.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
-        script.onload = () => {
-            const script2 = document.createElement('script');
-            script2.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js';
-            script2.onload = () => {
+        const s1 = document.createElement('script');
+        s1.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
+        s1.onload = () => {
+            const s2 = document.createElement('script');
+            s2.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js';
+            s2.onload = () => {
                 try {
                     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
                     isFirebaseReady = true; db = firebase.firestore(); resolve();
                 } catch(e) { reject(e); }
             };
-            script2.onerror = () => reject(new Error('Firestore failed'));
-            document.head.appendChild(script2);
+            s2.onerror = () => reject(new Error('Firestore load failed'));
+            document.head.appendChild(s2);
         };
-        script.onerror = () => reject(new Error('Firebase failed'));
-        document.head.appendChild(script);
+        s1.onerror = () => reject(new Error('Firebase load failed'));
+        document.head.appendChild(s1);
     });
 }
 
-// ============================================================
-// ADD SCHOOL
-// ============================================================
+// ════════════════════════════════════════════════════════════
+// 📷 LOGO UPLOAD
+// ════════════════════════════════════════════════════════════
+window.handleLogoUpload = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.match('image/(png|jpeg|jpg)')) {
+        showToast('Only PNG/JPEG allowed!', 'error');
+        event.target.value = '';
+        return;
+    }
+    if (file.size > 1024 * 1024) {
+        showToast('File size max 1MB!', 'error');
+        event.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        uploadedLogoData = e.target.result;
+        document.getElementById('logoPreview').innerHTML =
+            `<img src="${uploadedLogoData}" onerror="this.parentElement.innerHTML='<i class=\\'fa-solid fa-image\\' style=\\'opacity:0.4;\\'></i>'">`;
+        document.getElementById('schoolLogo').value = uploadedLogoData;
+        showToast('Logo uploaded!');
+    };
+    reader.onerror = () => showToast('Failed to read file!', 'error');
+    reader.readAsDataURL(file);
+};
+
+// ════════════════════════════════════════════════════════════
+// ➕ ADD SCHOOL
+// ════════════════════════════════════════════════════════════
 window.addSchool = async function() {
     const schoolName = document.getElementById('schoolName').value.trim();
-    const schoolLogo = document.getElementById('schoolLogo').value.trim();
     const subAdminName = document.getElementById('subAdminName').value.trim();
     const subAdminMobile = document.getElementById('subAdminMobile').value.trim();
     const subAdminPassword = document.getElementById('subAdminPassword').value.trim();
     const schoolPincode = document.getElementById('schoolPincode').value.trim();
+    const schoolWhatsapp = document.getElementById('schoolWhatsapp').value.trim();
+    const schoolLogo = document.getElementById('schoolLogo').value;
 
     if (!schoolName || !subAdminName || !subAdminMobile || !subAdminPassword) {
-        showToast('❌ Please fill all required fields!', 'error'); return;
+        showToast('Please fill all required fields!', 'error'); return;
     }
     if (subAdminMobile.length !== 10) {
-        showToast('❌ Mobile must be 10 digits!', 'error'); return;
+        showToast('Mobile must be 10 digits!', 'error'); return;
     }
     if (subAdminPassword.length < 6) {
-        showToast('❌ Password must be at least 6 characters!', 'error'); return;
+        showToast('Password must be at least 6 characters!', 'error'); return;
     }
 
     try {
         showLoading(true);
         if (!isFirebaseReady || !db) { await loadFirebase(); db = firebase.firestore(); }
 
-        // Check duplicate mobile
         const check = await db.collection('schools').where('subAdminMobile', '==', subAdminMobile).get();
-        if (!check.empty) { showToast('❌ Mobile already registered!', 'error'); showLoading(false); return; }
+        if (!check.empty) { showToast('Mobile already registered!', 'error'); showLoading(false); return; }
 
         await db.collection('schools').add({
-            schoolName: schoolName,
+            schoolName,
             schoolLogo: schoolLogo || '',
-            subAdminName: subAdminName,
-            subAdminMobile: subAdminMobile,
-            subAdminPassword: subAdminPassword,
+            subAdminName,
+            subAdminMobile,
+            subAdminPassword,
             schoolPincode: schoolPincode || '',
+            schoolWhatsapp: schoolWhatsapp || subAdminMobile,
             status: 'active',
             createdAt: new Date().toISOString()
         });
 
-        showToast('✅ School added successfully!');
-        document.getElementById('schoolName').value = '';
-        document.getElementById('schoolLogo').value = '';
-        document.getElementById('subAdminName').value = '';
-        document.getElementById('subAdminMobile').value = '';
-        document.getElementById('subAdminPassword').value = 'school123';
-        document.getElementById('schoolPincode').value = '';
+        showToast('School added successfully!');
+
+        ['schoolName','subAdminName','subAdminMobile','subAdminPassword','schoolPincode','schoolWhatsapp','schoolLogo']
+            .forEach(id => document.getElementById(id).value = '');
+        document.getElementById('logoPreview').innerHTML = '<i class="fa-solid fa-image" style="opacity:0.4;"></i>';
+        uploadedLogoData = '';
+
         loadSchools();
     } catch(e) {
         console.error(e);
-        showToast('❌ Error: ' + e.message, 'error');
+        showToast('Error: ' + e.message, 'error');
     }
     showLoading(false);
 };
 
-// ============================================================
-// LOAD SCHOOLS
-// ============================================================
+// ════════════════════════════════════════════════════════════
+// 📋 LOAD SCHOOLS
+// ════════════════════════════════════════════════════════════
 async function loadSchools() {
     const list = document.getElementById('schoolList');
     try {
@@ -244,18 +467,20 @@ async function loadSchools() {
 
         const snapshot = await db.collection('schools').orderBy('createdAt', 'desc').get();
         let html = '';
-        let totalSchools = 0;
-        let totalStudents = 0;
-        let activeStudents = 0;
+        let totalSchools = 0, totalStudents = 0, activeStudents = 0;
+        allSchoolsCache = [];
 
         if (snapshot.empty) {
-            html = '<div class="empty-msg"><span class="icon">🏫</span>No schools added yet.<br>Add your first school above!</div>';
+            html = `<div class="empty-msg">
+                        <span class="icon"><i class="fa-solid fa-school"></i></span>
+                        No schools added yet.<br>Add your first school above!
+                    </div>`;
         } else {
             for (const doc of snapshot.docs) {
                 const data = doc.data();
                 totalSchools++;
+                allSchoolsCache.push({ id: doc.id, ...data });
 
-                // Count students for this school
                 const studentsSnap = await db.collection('students').where('schoolId', '==', doc.id).get();
                 const schoolStudents = studentsSnap.size;
                 totalStudents += schoolStudents;
@@ -264,19 +489,29 @@ async function loadSchools() {
                 studentsSnap.forEach(s => { if (s.data().status === 'active') activeCount++; });
                 activeStudents += activeCount;
 
+                const logoHtml = data.schoolLogo
+                    ? `<img src="${data.schoolLogo}" onerror="this.parentElement.innerHTML='<i class=\\'fa-solid fa-school\\'></i>'">`
+                    : '<i class="fa-solid fa-school"></i>';
+
+                const isActive = (data.status || 'active') === 'active';
+                const toggleBtn = isActive
+                    ? `<button class="btn-sm btn-toggle-block" onclick="toggleSchoolStatus('${doc.id}','active')" title="Block School"><i class="fa-solid fa-lock"></i> Block</button>`
+                    : `<button class="btn-sm btn-toggle-block" onclick="toggleSchoolStatus('${doc.id}','blocked')" title="Unblock School"><i class="fa-solid fa-lock-open"></i> Unblock</button>`;
+
                 html += `
                     <div class="school-item">
-                        <div class="logo">
-                            ${data.schoolLogo ? `<img src="${data.schoolLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onerror="this.style.display='none';this.parentElement.textContent='🏫'">` : '🏫'}
-                        </div>
+                        <div class="logo">${logoHtml}</div>
                         <div class="info">
                             <div class="name">${data.schoolName}</div>
-                            <div class="detail">👤 ${data.subAdminName} • 📱 ${data.subAdminMobile}</div>
-                            <div class="detail">👨‍🎓 ${schoolStudents} students • 🟢 ${activeCount} active</div>
+                            <div class="detail"><i class="fa-solid fa-user"></i> ${data.subAdminName} &nbsp; <i class="fa-solid fa-phone"></i> ${data.subAdminMobile}</div>
+                            <div class="detail"><i class="fa-solid fa-user-graduate"></i> ${schoolStudents} students &nbsp; <i class="fa-solid fa-circle-check"></i> ${activeCount} active</div>
                         </div>
                         <div class="actions">
-                            <span class="status-badge ${data.status === 'active' ? 'active' : 'blocked'}">${data.status || 'active'}</span>
-                            <button class="btn-sm btn-delete" onclick="deleteSchool('${doc.id}','${data.schoolName}')">🗑️ Delete</button>
+                            <span class="status-badge ${isActive ? 'active' : 'blocked'}">${data.status || 'active'}</span>
+                            ${toggleBtn}
+                            <button class="btn-sm btn-delete" onclick="deleteSchool('${doc.id}','${data.schoolName.replace(/'/g, "\\'")}')">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
                         </div>
                     </div>
                 `;
@@ -290,42 +525,244 @@ async function loadSchools() {
 
     } catch(e) {
         console.error(e);
-        list.innerHTML = '<div class="empty-msg" style="color:#FF6584;">❌ Error loading schools. Check Firebase.</div>';
+        list.innerHTML = `<div class="empty-msg" style="color:#FF4D6D;">
+                            <span class="icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                            Error loading schools. Check Firebase config.
+                          </div>`;
     }
 }
 
-// ============================================================
-// DELETE SCHOOL
-// ============================================================
-window.deleteSchool = async function(id, name) {
-    if (!confirm(`⚠️ Delete "${name}" permanently?\nAll students of this school will also be deleted!`)) return;
+// ════════════════════════════════════════════════════════════
+// 🔒🔓 TOGGLE SINGLE SCHOOL STATUS (Block/Unblock)
+// ════════════════════════════════════════════════════════════
+window.toggleSchoolStatus = async function(schoolId, currentStatus) {
+    const newStatus = currentStatus === 'active' ? 'blocked' : 'active';
+    const action = newStatus === 'blocked' ? 'Block' : 'Unblock';
+    
+    if (!confirm(`${action} this school?`)) return;
+
     try {
         showLoading(true);
-        // Delete all students of this school
-        const studentsSnap = await db.collection('students').where('schoolId', '==', id).get();
-        const batch = db.batch();
-        studentsSnap.forEach(doc => { batch.delete(doc.ref); });
-        batch.delete(db.collection('schools').doc(id));
-        await batch.commit();
-        showToast('✅ School deleted!');
+        await db.collection('schools').doc(schoolId).update({
+            status: newStatus,
+            updatedAt: new Date().toISOString()
+        });
+        showToast(`School ${newStatus}!`);
         loadSchools();
     } catch(e) {
-        showToast('❌ Error: ' + e.message, 'error');
+        showToast('Error: ' + e.message, 'error');
     }
     showLoading(false);
 };
 
-// ============================================================
-// INIT
-// ============================================================
+// ════════════════════════════════════════════════════════════
+// 🔥 NEW: BLOCK ALL SCHOOLS (One Click)
+// ════════════════════════════════════════════════════════════
+window.blockAllSchools = async function() {
+    try {
+        showLoading(true);
+        if (!isFirebaseReady || !db) { await loadFirebase(); db = firebase.firestore(); }
+
+        // Get all active schools
+        const snapshot = await db.collection('schools').where('status', '==', 'active').get();
+        
+        if (snapshot.empty) {
+            showToast('No active schools to block!', 'error');
+            showLoading(false);
+            return;
+        }
+
+        const count = snapshot.size;
+        if (!confirm(`⚠️ Block ALL ${count} active school(s)?\n\nSub-admins will NOT be able to login!`)) {
+            showLoading(false);
+            return;
+        }
+
+        // Batch update
+        const batch = db.batch();
+        snapshot.forEach(doc => {
+            batch.update(doc.ref, {
+                status: 'blocked',
+                updatedAt: new Date().toISOString()
+            });
+        });
+        await batch.commit();
+
+        showToast(`All ${count} schools blocked!`);
+        loadSchools();
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+    showLoading(false);
+};
+
+// ════════════════════════════════════════════════════════════
+// 🔥 NEW: UNBLOCK ALL SCHOOLS (One Click)
+// ════════════════════════════════════════════════════════════
+window.unblockAllSchools = async function() {
+    try {
+        showLoading(true);
+        if (!isFirebaseReady || !db) { await loadFirebase(); db = firebase.firestore(); }
+
+        // Get all blocked schools
+        const snapshot = await db.collection('schools').where('status', '==', 'blocked').get();
+        
+        if (snapshot.empty) {
+            showToast('No blocked schools to unblock!', 'error');
+            showLoading(false);
+            return;
+        }
+
+        const count = snapshot.size;
+        if (!confirm(`✅ Unblock ALL ${count} blocked school(s)?\n\nSub-admins will be able to login again!`)) {
+            showLoading(false);
+            return;
+        }
+
+        // Batch update
+        const batch = db.batch();
+        snapshot.forEach(doc => {
+            batch.update(doc.ref, {
+                status: 'active',
+                updatedAt: new Date().toISOString()
+            });
+        });
+        await batch.commit();
+
+        showToast(`All ${count} schools unblocked!`);
+        loadSchools();
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+    showLoading(false);
+};
+
+// ════════════════════════════════════════════════════════════
+// 🗑️ DELETE SCHOOL
+// ════════════════════════════════════════════════════════════
+window.deleteSchool = async function(id, name) {
+    if (!confirm(`Delete "${name}" permanently?\nAll students of this school will also be deleted!`)) return;
+    try {
+        showLoading(true);
+        const studentsSnap = await db.collection('students').where('schoolId', '==', id).get();
+        const batch = db.batch();
+        studentsSnap.forEach(doc => batch.delete(doc.ref));
+        batch.delete(db.collection('schools').doc(id));
+        await batch.commit();
+        showToast('School deleted!');
+        loadSchools();
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+    showLoading(false);
+};
+
+// ════════════════════════════════════════════════════════════
+// 💬 BULK WHATSAPP (Modal-based)
+// ════════════════════════════════════════════════════════════
+window.openBulkWhatsApp = async function() {
+    const message = document.getElementById('bulkWhatsappMessage').value.trim();
+    if (!message) { showToast('Please enter a message!', 'error'); return; }
+
+    try {
+        showLoading(true);
+        if (!isFirebaseReady || !db) { await loadFirebase(); db = firebase.firestore(); }
+
+        const snapshot = await db.collection('schools').where('status', '==', 'active').get();
+        if (snapshot.empty) { showToast('No active schools found!', 'error'); showLoading(false); return; }
+
+        const schools = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const mobile = data.schoolWhatsapp || data.subAdminMobile;
+            if (mobile && mobile.length >= 10) schools.push({ mobile, name: data.schoolName });
+        });
+
+        let waHtml = '';
+        schools.forEach((s, i) => {
+            waHtml += `
+                <div class="wa-item">
+                    <div class="wa-info">
+                        <div class="wa-name">${i+1}. ${s.name}</div>
+                        <div class="wa-num">+91 ${s.mobile}</div>
+                    </div>
+                    <a href="https://wa.me/91${s.mobile}?text=${encodeURIComponent(message)}" target="_blank" class="wa-btn">
+                        <i class="fa-brands fa-whatsapp"></i> Open
+                    </a>
+                </div>
+            `;
+        });
+
+        document.getElementById('waList').innerHTML = waHtml;
+        document.getElementById('bulkModal').classList.add('active');
+        showLoading(false);
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+        showLoading(false);
+    }
+};
+
+window.closeBulkModal = function() {
+    document.getElementById('bulkModal').classList.remove('active');
+};
+
+// ════════════════════════════════════════════════════════════
+// 📊 EXCEL DOWNLOAD
+// ════════════════════════════════════════════════════════════
+window.downloadSchoolsExcel = async function() {
+    try {
+        showLoading(true);
+        const snapshot = await db.collection('schools').orderBy('createdAt', 'desc').get();
+        if (snapshot.empty) { showToast('No schools to export!', 'error'); showLoading(false); return; }
+
+        const data = [];
+        for (const doc of snapshot.docs) {
+            const s = doc.data();
+            const studentsSnap = await db.collection('students').where('schoolId', '==', doc.id).get();
+            let activeCount = 0;
+            studentsSnap.forEach(st => { if (st.data().status === 'active') activeCount++; });
+
+            data.push({
+                'School Name': s.schoolName,
+                'Sub-Admin': s.subAdminName,
+                'Mobile': s.subAdminMobile,
+                'WhatsApp': s.schoolWhatsapp || s.subAdminMobile,
+                'Pincode': s.schoolPincode || '',
+                'Status': s.status || 'active',
+                'Total Students': studentsSnap.size,
+                'Active Students': activeCount,
+                'Created At': s.createdAt ? new Date(s.createdAt).toLocaleString() : ''
+            });
+        }
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Schools Report');
+        XLSX.writeFile(wb, `Schools_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+        showToast('Excel downloaded!');
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+    showLoading(false);
+};
+
+// ════════════════════════════════════════════════════════════
+// 🚀 INIT
+// ════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
     loadFirebase().then(() => {
         db = firebase.firestore();
-        console.log('✅ Admin Panel Ready!');
+        console.log('%c✓ Admin Panel Ready', 'color:#00E5A0;font-weight:bold;font-size:14px;');
+        console.log('%c🔥 Firebase: researchtoolbyre', 'color:#7C6BFF;font-weight:bold;');
         loadSchools();
     }).catch(err => {
-        console.warn('⚠️ Firebase error:', err);
-        document.getElementById('schoolList').innerHTML = '<div class="empty-msg" style="color:#FF6584;">❌ Firebase connection error.</div>';
+        console.warn('Firebase error:', err);
+        document.getElementById('schoolList').innerHTML = `
+            <div class="empty-msg" style="color:#FF4D6D;">
+                <span class="icon"><i class="fa-solid fa-plug-circle-xmark"></i></span>
+                Firebase connection error.<br>
+                <small style="font-size:12px;opacity:0.7;">Check config or Firestore rules</small>
+            </div>`;
     });
 });
 </script>
